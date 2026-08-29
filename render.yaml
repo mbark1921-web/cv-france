@@ -2,12 +2,9 @@ services:
   - type: web
     name: cv-france-staging
     runtime: docker
+    plan: free
     autoDeploy: true
     healthCheckPath: /api/health
-    disk:
-      name: cv-france-staging-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
