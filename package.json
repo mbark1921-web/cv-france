@@ -1,6 +1,6 @@
 {
   "name": "cv-france-v20",
-  "version": "20.0.1",
+  "version": "20.0.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.7.0",
+    "better-sqlite3": "13.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
