@@ -1,0 +1,18 @@
+import { z } from "zod";
+export const registerSchema=z.object({email:z.string().email().max(200),password:z.string().min(8).max(128),inviteCode:z.string().trim().max(120).optional().default("")});
+export const loginSchema=registerSchema;
+export const passwordChangeSchema=z.object({currentPassword:z.string().min(1).max(128),newPassword:z.string().min(8).max(128)});
+export const resetRequestSchema=z.object({email:z.string().email().max(200)});
+export const resetConfirmSchema=z.object({token:z.string().min(20).max(500),newPassword:z.string().min(8).max(128)});
+export const verifyEmailSchema=z.object({token:z.string().min(20).max(500)});
+export const applicationSchema=z.object({company:z.string().trim().min(1).max(120),role:z.string().trim().min(1).max(120),applied_date:z.string().max(20).optional().default(""),status:z.enum(["Envoyée","Entretien","Relance","Refus","Acceptée"]).default("Envoyée"),notes:z.string().max(2000).optional().default("")});
+export const profileSchema=z.object({data:z.record(z.any())});
+export const aiImproveSchema=z.object({text:z.string().trim().min(20).max(5000),targetRole:z.string().trim().max(200).optional().default("")});
+export const cvDocumentSchema=z.object({title:z.string().trim().min(1).max(120),targetRole:z.string().trim().max(200).optional().default(""),data:z.record(z.any())});
+export const coverLetterSchema=z.object({title:z.string().trim().min(1).max(120),company:z.string().trim().max(200).optional().default(""),targetRole:z.string().trim().max(200).optional().default(""),content:z.string().max(12000).optional().default("")});
+export const aiLetterSchema=z.object({candidateFacts:z.string().trim().min(20).max(7000),company:z.string().trim().max(200).optional().default(""),targetRole:z.string().trim().min(1).max(200),tone:z.enum(["simple","professional","direct"]).optional().default("professional")});
+export const contactSchema=z.object({name:z.string().trim().min(2).max(120),email:z.string().email().max(200),subject:z.string().trim().min(3).max(160),message:z.string().trim().min(10).max(6000)});
+export const feedbackSchema=z.object({rating:z.number().int().min(1).max(5).optional(),category:z.enum(["general","bug","idea","design","payment","ai"]).optional().default("general"),message:z.string().trim().min(5).max(5000),page:z.string().trim().max(200).optional().default("")});
+export const inviteCreateSchema=z.object({code:z.string().trim().min(4).max(80).regex(/^[A-Za-z0-9_-]+$/),label:z.string().trim().max(160).optional().default(""),maxUses:z.number().int().min(1).max(1000).optional().default(1),expiresAt:z.string().max(40).optional().nullable()});
+export const feedbackAdminSchema=z.object({status:z.enum(["open","in_progress","done","rejected"]),adminNote:z.string().max(3000).optional().default("")});
+export const clientErrorSchema=z.object({message:z.string().trim().min(1).max(3000),source:z.string().max(500).optional().default(""),line:z.number().int().min(0).optional().nullable(),column:z.number().int().min(0).optional().nullable(),stack:z.string().max(10000).optional().default(""),page:z.string().max(500).optional().default(""),userAgent:z.string().max(1000).optional().default("")});

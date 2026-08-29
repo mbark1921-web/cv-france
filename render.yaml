@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: cv-france-staging
+    runtime: docker
+    autoDeploy: true
+    healthCheckPath: /api/health
+    disk:
+      name: cv-france-staging-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_STAGE
+        value: staging
+      - key: PORT
+        value: 3000
+      - key: DATA_DIR
+        value: /data
+      - key: BACKUP_DIR
+        value: /data/backups
+      - key: JWT_SECRET
+        generateValue: true
+
+      - key: DOMAIN
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: SUPPORT_EMAIL
+        sync: false
+
+      - key: REGISTRATION_MODE
+        value: invite
+      - key: FEEDBACK_ENABLED
+        value: "true"
+      - key: CLIENT_ERROR_REPORTING
+        value: "on"
+      - key: MAINTENANCE_MODE
+        value: "off"
+      - key: ANALYTICS_MODE
+        value: "off"
+
+      - key: EMAIL_MODE
+        value: console
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PREMIUM_PRICE_ID
+        sync: false
+      - key: STRIPE_PORTAL_CONFIGURATION_ID
+        sync: false
+
+      - key: AI_MODE
+        value: mock
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AI_DAILY_LIMIT
+        value: "100"

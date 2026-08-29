@@ -1,0 +1,4 @@
+import nodemailer from "nodemailer";
+let transporter;
+function getTransporter(){if(transporter)return transporter;const port=Number(process.env.SMTP_PORT||587);const secure=String(process.env.SMTP_SECURE||"").toLowerCase()==="true"||port===465;transporter=nodemailer.createTransport({host:process.env.SMTP_HOST,port,secure,auth:process.env.SMTP_USER?{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD}:undefined});return transporter}
+export async function sendMail({to,subject,text,html}){const mode=process.env.EMAIL_MODE||"console";if(mode==="console"){console.log("EMAIL",{to,subject,text});return{ok:true,mode}}if(mode!=="smtp")throw new Error("Unsupported EMAIL_MODE.");const info=await getTransporter().sendMail({from:process.env.EMAIL_FROM,to,subject,text,html});return{ok:true,mode,messageId:info.messageId}}

@@ -1,13 +1,18 @@
-# CV France
+# CV France v20
 
-CV France v20 — Render Staging Ready.
+Application de création de CV, lettres de motivation et suivi de candidatures.
 
-Application de création de CV, lettres de motivation et suivi de candidatures, avec architecture Node.js/Express, SQLite persistant, PWA, bêta privée, Stripe/SMTP/IA configurables côté serveur.
+## Staging Render
+Le dépôt contient `render.yaml` pour créer un service Docker avec disque persistant `/data`.
 
-## Staging
-
-Voir `RENDER_STAGING_STEP_BY_STEP.md` pour le déploiement Render.
+Ordre conseillé: déployer d'abord avec `EMAIL_MODE=console`, `AI_MODE=mock`, Stripe désactivé, puis tester `/api/health` et `/api/readiness`.
 
 ## Sécurité
+Ne jamais committer `.env`, clés API, secrets Stripe, mots de passe SMTP ou bases SQLite. `.gitignore` protège ces fichiers.
 
-Ne jamais committer de fichier `.env`, de clé API, de secret Stripe, de mot de passe SMTP ni de base SQLite.
+## Commandes
+- `npm start`
+- `npm run doctor`
+- `npm run platform-check`
+- `npm run test:smoke`
+- `npm run backup`

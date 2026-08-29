@@ -1,0 +1,31 @@
+{
+  "name": "cv-france-v20",
+  "version": "20.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "backup": "node server/backup.js",
+    "test:smoke": "node server/smoke-test.js",
+    "doctor": "node server/doctor.js",
+    "restore": "node server/restore-backup.js",
+    "platform-check": "node server/platform-check.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^9.0.6",
+    "stripe": "^22.4.0",
+    "zod": "^3.24.2"
+  }
+}

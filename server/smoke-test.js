@@ -1,0 +1,1 @@
+import assert from "node:assert/strict";const base=process.env.SMOKE_BASE_URL||"http://127.0.0.1:3000";const h=await fetch(base+"/api/health");assert.equal(h.status,200);const d=await h.json();assert.equal(d.ok,true);const u=await fetch(base+"/api/cvs");assert.equal(u.status,401);console.log("Smoke tests passed");

@@ -1,0 +1,27 @@
+name: CV France CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax checks
+        run: for f in server/*.js; do node --check "$f"; done
+      - name: Start server
+        env:
+          PORT: 3000
+          JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+          REGISTRATION_MODE: closed
+          EMAIL_MODE: console
+          AI_MODE: mock
+          DATA_DIR: ./data-ci
+        run: |
+          npm start > /tmp/cv-france.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:3000/api/health && exit 0; sleep 1; done
+          cat /tmp/cv-france.log; exit 1
+      - name: Smoke tests
+        run: npm run test:smoke

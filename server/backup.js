@@ -1,0 +1,1 @@
+import "dotenv/config";import fs from "fs";import path from "path";import db from "./db.js";const dir=path.resolve(process.env.BACKUP_DIR||"backups");fs.mkdirSync(dir,{recursive:true});const target=path.join(dir,`cv-france-${new Date().toISOString().replace(/[:.]/g,"-")}.db`);await db.backup(target);console.log(`Backup created: ${target}`);db.close();
