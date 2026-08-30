@@ -84,8 +84,8 @@ window.updateCvPreview=function(){
   }
 };
 
-// Final authoritative CV saver. Persist every field shown by the professional CV form.
-window.saveCv=async function(){
+// Dedicated final saver. The CV button is rebound to this unique name so old saveCv declarations cannot win.
+window.saveCvFinal=async function(){
   const get=id=>{const el=document.getElementById(id);return el?String(el.value||'').trim():''};
   const body={
     title:get('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
@@ -119,8 +119,13 @@ setTimeout(()=>window.updateCvPreview(),100);
 `;
 
 html = html.replace('</script></body>', finalRenderer + '</script></body>');
+// Rebind only the CV form save button, leaving letter/application save actions untouched.
+html = html.replace(
+  '<button class="primary" data-i18n="save" onclick="saveCv()">Enregistrer</button><div class="template-row">',
+  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><div class="template-row">'
+);
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied final authoritative CV preview renderer and saver.');
+  console.log('Applied final CV preview renderer and dedicated save button binding.');
 }
