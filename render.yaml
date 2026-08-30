@@ -12,6 +12,10 @@ services:
         value: staging
       - key: PORT
         value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_POOL_MAX
+        value: "5"
       - key: DATA_DIR
         value: /data
       - key: BACKUP_DIR
