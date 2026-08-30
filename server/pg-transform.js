@@ -27,7 +27,7 @@ s = s.replaceAll("is_primary=0", "is_primary=false");
 s = s.replaceAll("is_primary=1", "is_primary=true");
 s = s.replaceAll("CASE WHEN is_active=true THEN 0 ELSE 1 END", "NOT is_active");
 s = s.replaceAll("AND (expires_at IS NULL OR expires_at='' OR expires_at > CURRENT_TIMESTAMP)", "AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)");
-s = s.replaceAll("existingCount === 0 ? 1 : 0", "existingCount === 0");
+s = s.replaceAll("existingCount === 0 ? 1 : 0", "Number(existingCount) === 0");
 
 s = s.replace(
   'app.get("/api/readiness", async (req, res) => {\n  const checks = {',
@@ -99,7 +99,7 @@ s = s.replace(
 const requiredMarkers = [
   "async function consumeAiQuota(userId)",
   "const quota = await consumeAiQuota(req.user.id)",
-  "existingCount === 0",
+  "Number(existingCount) === 0",
   "database"
 ];
 for (const marker of requiredMarkers) {
