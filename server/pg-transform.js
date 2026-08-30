@@ -11,7 +11,9 @@ s = s.replaceAll("syncSubscription(sub, userId);", "await syncSubscription(sub, 
 s = s.replaceAll("syncSubscription(event.data.object);", "await syncSubscription(event.data.object);");
 s = s.replace("function logEvent(userId, eventType, data = {}) {", "async function logEvent(userId, eventType, data = {}) {");
 s = s.replace("function findValidInvite(code) {", "async function findValidInvite(code) {");
+s = s.replace("function consumeAiQuota(userId) {", "async function consumeAiQuota(userId) {");
 s = s.replace("matchedInvite = findValidInvite(input.inviteCode);", "matchedInvite = await findValidInvite(input.inviteCode);");
+s = s.replaceAll("const quota = consumeAiQuota(req.user.id);", "const quota = await consumeAiQuota(req.user.id);");
 s = s.replaceAll("(req, res) => {", "async (req, res) => {");
 s = s.replaceAll("async async (req, res) => {", "async (req, res) => {");
 s = s.replaceAll("db.transaction(() => {", "db.transaction(async () => {");
@@ -25,6 +27,7 @@ s = s.replaceAll("is_primary=0", "is_primary=false");
 s = s.replaceAll("is_primary=1", "is_primary=true");
 s = s.replaceAll("CASE WHEN is_active=true THEN 0 ELSE 1 END", "NOT is_active");
 s = s.replaceAll("AND (expires_at IS NULL OR expires_at='' OR expires_at > CURRENT_TIMESTAMP)", "AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)");
+s = s.replaceAll("existingCount === 0 ? 1 : 0", "existingCount === 0");
 
 s = s.replace(
   'app.get("/api/readiness", async (req, res) => {\n  const checks = {',
@@ -92,6 +95,18 @@ s = s.replace(
     process.exit(0);
   });`
 );
+
+const requiredMarkers = [
+  "async function consumeAiQuota(userId)",
+  "const quota = await consumeAiQuota(req.user.id)",
+  "existingCount === 0",
+  "database"
+];
+for (const marker of requiredMarkers) {
+  if (!s.includes(marker)) {
+    throw new Error(`PostgreSQL transform sanity check failed: ${marker}`);
+  }
+}
 
 fs.writeFileSync(targetPath, s);
 console.log(`Generated PostgreSQL server: ${targetPath}`);
