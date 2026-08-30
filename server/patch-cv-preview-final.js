@@ -84,33 +84,87 @@ window.updateCvPreview=function(){
   }
 };
 
-// Dedicated final saver. The CV button is rebound to this unique name so old saveCv declarations cannot win.
+let activeCvId=null;
+function cvGet(id){const el=document.getElementById(id);return el?String(el.value||'').trim():''}
+function cvSet(id,value){const el=document.getElementById(id);if(el)el.value=value||''}
+function cvBody(){return {
+  title:cvGet('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
+  targetRole:cvGet('cvRole'),
+  data:{
+    template:cvGet('cvTemplate')||'classic',
+    fullName:cvGet('cvFullName'),
+    phone:cvGet('cvPhone'),
+    email:cvGet('cvEmail'),
+    address:cvGet('cvAddress'),
+    jobTitle:cvGet('cvRole'),
+    profile:cvGet('cvProfile'),
+    experience:cvGet('cvExperience'),
+    skills:cvGet('cvSkills'),
+    education:cvGet('cvEducation'),
+    languages:cvGet('cvLanguages')
+  }
+}}
+window.loadCvIntoForm=function(cv){
+  if(!cv)return;
+  const d=cv.data||{};
+  activeCvId=Number(cv.id)||null;
+  cvSet('cvTitle',cv.title);
+  cvSet('cvRole',cv.target_role||d.jobTitle);
+  cvSet('cvFullName',d.fullName);
+  cvSet('cvPhone',d.phone);
+  cvSet('cvEmail',d.email);
+  cvSet('cvAddress',d.address);
+  cvSet('cvProfile',d.profile);
+  cvSet('cvExperience',d.experience);
+  cvSet('cvSkills',d.skills);
+  cvSet('cvEducation',d.education);
+  cvSet('cvLanguages',d.languages);
+  cvSet('cvTemplate',d.template||'classic');
+  window.updateCvPreview();
+}
+window.newCvFinal=function(){
+  activeCvId=null;
+  ['cvTitle','cvRole','cvFullName','cvPhone','cvEmail','cvAddress','cvProfile','cvExperience','cvSkills','cvEducation','cvLanguages'].forEach(id=>cvSet(id,''));
+  cvSet('cvTemplate','classic');
+  window.updateCvPreview();
+}
 window.saveCvFinal=async function(){
-  const get=id=>{const el=document.getElementById(id);return el?String(el.value||'').trim():''};
-  const body={
-    title:get('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
-    targetRole:get('cvRole'),
-    data:{
-      template:get('cvTemplate')||'classic',
-      fullName:get('cvFullName'),
-      phone:get('cvPhone'),
-      email:get('cvEmail'),
-      address:get('cvAddress'),
-      jobTitle:get('cvRole'),
-      profile:get('cvProfile'),
-      experience:get('cvExperience'),
-      skills:get('cvSkills'),
-      education:get('cvEducation'),
-      languages:get('cvLanguages')
-    }
-  };
-  const r=await fetch(A+'/cvs',{method:'POST',headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const body=cvBody();
+  const editing=Number.isInteger(activeCvId)&&activeCvId>0;
+  const url=editing?A+'/cvs/'+activeCvId:A+'/cvs';
+  const method=editing?'PUT':'POST';
+  const r=await fetch(url,{method,headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
   if(!r.ok)return note(d.error,true);
+  if(!editing&&d.id)activeCvId=Number(d.id);
   note(T[lang].cvSaved);
-  loadCvs();
+  await window.loadCvsFinal();
   loadDashboard();
 };
+window.loadCvsFinal=async function(){
+  if(!token)return;
+  const box=document.getElementById('cvList');
+  if(box)box.replaceChildren();
+  const r=await fetch(A+'/cvs',{headers:H()});
+  const d=await r.json();
+  if(!r.ok)return;
+  const cvs=Array.isArray(d.cvs)?d.cvs:[];
+  if(box){
+    cvs.forEach(cv=>{
+      const row=document.createElement('p');
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.textContent=cv.title+(cv.target_role?' — '+cv.target_role:'');
+      btn.onclick=()=>window.loadCvIntoForm(cv);
+      row.appendChild(btn);
+      box.appendChild(row);
+    });
+  }
+  if(!activeCvId&&cvs.length)window.loadCvIntoForm(cvs[0]);
+};
+
+// Replace the old loader used by navigation and post-save refreshes.
+loadCvs=window.loadCvsFinal;
 
 document.addEventListener('input',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
 document.addEventListener('change',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
@@ -121,8 +175,13 @@ setTimeout(()=>window.updateCvPreview(),100);
 html = html.replace('</script></body>', finalRenderer + '</script></body>');
 // Robustly rebind every remaining CV save call after all other public patches have run.
 html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
+// Add an explicit New CV action next to the save action.
+html = html.replace(
+  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
+  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" onclick="newCvFinal()">Nouveau CV</button>'
+);
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied final CV preview renderer and robust save button binding.');
+  console.log('Applied CV update-in-place flow with explicit new CV action.');
 }
