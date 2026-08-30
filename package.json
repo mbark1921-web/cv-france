@@ -7,8 +7,9 @@
     "node": ">=24 <27"
   },
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "build:pg": "node server/pg-transform.js",
+    "start": "npm run build:pg && node server/index.pg.generated.js",
+    "dev": "npm run build:pg && node --watch server/index.pg.generated.js",
     "backup": "node server/backup.js",
     "test:smoke": "node server/smoke-test.js",
     "doctor": "node server/doctor.js",
