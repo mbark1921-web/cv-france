@@ -84,6 +84,34 @@ window.updateCvPreview=function(){
   }
 };
 
+// Final authoritative CV saver. Persist every field shown by the professional CV form.
+window.saveCv=async function(){
+  const get=id=>{const el=document.getElementById(id);return el?String(el.value||'').trim():''};
+  const body={
+    title:get('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
+    targetRole:get('cvRole'),
+    data:{
+      template:get('cvTemplate')||'classic',
+      fullName:get('cvFullName'),
+      phone:get('cvPhone'),
+      email:get('cvEmail'),
+      address:get('cvAddress'),
+      jobTitle:get('cvRole'),
+      profile:get('cvProfile'),
+      experience:get('cvExperience'),
+      skills:get('cvSkills'),
+      education:get('cvEducation'),
+      languages:get('cvLanguages')
+    }
+  };
+  const r=await fetch(A+'/cvs',{method:'POST',headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok)return note(d.error,true);
+  note(T[lang].cvSaved);
+  loadCvs();
+  loadDashboard();
+};
+
 document.addEventListener('input',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
 document.addEventListener('change',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
 window.addEventListener('pageshow',()=>setTimeout(()=>window.updateCvPreview(),0));
@@ -94,5 +122,5 @@ html = html.replace('</script></body>', finalRenderer + '</script></body>');
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied final authoritative CV preview renderer.');
+  console.log('Applied final authoritative CV preview renderer and saver.');
 }
