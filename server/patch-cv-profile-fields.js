@@ -5,10 +5,16 @@ const indexPath = path.resolve('public/index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 const before = html;
 
+// Keep phone numbers and email addresses left-to-right even in the Arabic UI.
+html = html.replace(
+  '</style>',
+  `html[dir="rtl"] input.ltr-field{direction:ltr!important;text-align:left!important;unicode-bidi:plaintext!important}</style>`
+);
+
 // Add professional identity/contact fields after the target job field.
 html = html.replace(
   '<input id="cvRole" data-ph="targetJob" placeholder="Métier recherché">',
-  '<input id="cvRole" data-ph="targetJob" placeholder="Métier recherché"><div class="grid"><input id="cvFullName" data-ph="fullName" placeholder="Nom et prénom"><input id="cvPhone" data-ph="phone" placeholder="Téléphone"></div><div class="grid"><input id="cvEmail" type="email" data-ph="cvEmail" placeholder="E-mail"><input id="cvAddress" data-ph="address" placeholder="Ville / Adresse"></div>'
+  '<input id="cvRole" data-ph="targetJob" placeholder="Métier recherché"><div class="grid"><input id="cvFullName" data-ph="fullName" placeholder="Nom et prénom"><input id="cvPhone" class="ltr-field" inputmode="tel" data-ph="phone" placeholder="Téléphone"></div><div class="grid"><input id="cvEmail" class="ltr-field" type="email" data-ph="cvEmail" placeholder="E-mail"><input id="cvAddress" data-ph="address" placeholder="Ville / Adresse"></div>'
 );
 
 // Add education and languages after skills.
