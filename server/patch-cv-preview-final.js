@@ -119,13 +119,10 @@ setTimeout(()=>window.updateCvPreview(),100);
 `;
 
 html = html.replace('</script></body>', finalRenderer + '</script></body>');
-// Rebind only the CV form save button, leaving letter/application save actions untouched.
-html = html.replace(
-  '<button class="primary" data-i18n="save" onclick="saveCv()">Enregistrer</button><div class="template-row">',
-  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><div class="template-row">'
-);
+// Robustly rebind every remaining CV save call after all other public patches have run.
+html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied final CV preview renderer and dedicated save button binding.');
+  console.log('Applied final CV preview renderer and robust save button binding.');
 }
