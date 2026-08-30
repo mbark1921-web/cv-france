@@ -31,7 +31,7 @@ services:
         sync: false
 
       - key: REGISTRATION_MODE
-        value: invite
+        value: open
       - key: FEEDBACK_ENABLED
         value: "true"
       - key: CLIENT_ERROR_REPORTING
