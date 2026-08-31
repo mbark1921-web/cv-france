@@ -73,8 +73,8 @@ window.updateCvPreview=function(){
   section(T[lang].previewProfile,profile);
   section(T[lang].previewExperience,experience);
   section(T[lang].previewSkills,skills);
-  section(T[lang].previewEducation|| (lang==='ar'?'الدراسة والتكوين':'Formation'),education);
-  section(T[lang].previewLanguages|| (lang==='ar'?'اللغات':'Langues'),languages);
+  section(T[lang].previewEducation||(lang==='ar'?'الدراسة والتكوين':'Formation'),education);
+  section(T[lang].previewLanguages||(lang==='ar'?'اللغات':'Langues'),languages);
 
   if(!(name||role||email||phone||address||profile||experience||skills||education||languages)){
     const p=document.createElement('p');
@@ -87,6 +87,13 @@ window.updateCvPreview=function(){
 let activeCvId=null;
 function cvGet(id){const el=document.getElementById(id);return el?String(el.value||'').trim():''}
 function cvSet(id,value){const el=document.getElementById(id);if(el)el.value=value||''}
+function cvEditStatus(){
+  const el=document.getElementById('cvEditStatus');
+  if(!el)return;
+  el.textContent=activeCvId
+    ?(lang==='ar'?'وضع التعديل — CV #'+activeCvId:'Mode modification — CV #'+activeCvId)
+    :(lang==='ar'?'وضع إنشاء سيرة جديدة':'Mode nouveau CV');
+}
 function cvBody(){return {
   title:cvGet('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
   targetRole:cvGet('cvRole'),
@@ -120,12 +127,15 @@ window.loadCvIntoForm=function(cv){
   cvSet('cvEducation',d.education);
   cvSet('cvLanguages',d.languages);
   cvSet('cvTemplate',d.template||'classic');
+  cvEditStatus();
   window.updateCvPreview();
+  document.getElementById('cvTitle')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 window.newCvFinal=function(){
   activeCvId=null;
   ['cvTitle','cvRole','cvFullName','cvPhone','cvEmail','cvAddress','cvProfile','cvExperience','cvSkills','cvEducation','cvLanguages'].forEach(id=>cvSet(id,''));
   cvSet('cvTemplate','classic');
+  cvEditStatus();
   window.updateCvPreview();
 }
 window.saveCvFinal=async function(){
@@ -137,7 +147,10 @@ window.saveCvFinal=async function(){
   const d=await r.json();
   if(!r.ok)return note(d.error,true);
   if(!editing&&d.id)activeCvId=Number(d.id);
-  note(T[lang].cvSaved);
+  cvEditStatus();
+  note(editing
+    ?(lang==='ar'?'تم تحديث السيرة الذاتية':'CV mis à jour')
+    :T[lang].cvSaved);
   await window.loadCvsFinal();
   loadDashboard();
 };
@@ -151,16 +164,24 @@ window.loadCvsFinal=async function(){
   const cvs=Array.isArray(d.cvs)?d.cvs:[];
   if(box){
     cvs.forEach(cv=>{
-      const row=document.createElement('p');
+      const row=document.createElement('div');
+      row.style.display='flex';
+      row.style.alignItems='center';
+      row.style.gap='8px';
+      row.style.flexWrap='wrap';
+      row.style.margin='8px 0';
+      const label=document.createElement('span');
+      label.textContent=cv.title+(cv.target_role?' — '+cv.target_role:'');
       const btn=document.createElement('button');
       btn.type='button';
-      btn.textContent=cv.title+(cv.target_role?' — '+cv.target_role:'');
+      btn.textContent=lang==='ar'?'تعديل':'Modifier';
       btn.onclick=()=>window.loadCvIntoForm(cv);
+      row.appendChild(label);
       row.appendChild(btn);
       box.appendChild(row);
     });
   }
-  if(!activeCvId&&cvs.length)window.loadCvIntoForm(cvs[0]);
+  cvEditStatus();
 };
 
 // Replace the old loader used by navigation and post-save refreshes.
@@ -168,20 +189,20 @@ loadCvs=window.loadCvsFinal;
 
 document.addEventListener('input',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
 document.addEventListener('change',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
-window.addEventListener('pageshow',()=>setTimeout(()=>window.updateCvPreview(),0));
-setTimeout(()=>window.updateCvPreview(),100);
+window.addEventListener('pageshow',()=>setTimeout(()=>{window.updateCvPreview();cvEditStatus()},0));
+setTimeout(()=>{window.updateCvPreview();cvEditStatus()},100);
 `;
 
 html = html.replace('</script></body>', finalRenderer + '</script></body>');
 // Robustly rebind every remaining CV save call after all other public patches have run.
 html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
-// Add an explicit New CV action next to the save action.
+// Add explicit save/new actions and a visible edit-mode indicator.
 html = html.replace(
   '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
-  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" onclick="newCvFinal()">Nouveau CV</button>'
+  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" onclick="newCvFinal()">Nouveau CV</button><span id="cvEditStatus" class="muted" style="margin-inline-start:10px"></span>'
 );
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied CV update-in-place flow with explicit new CV action.');
+  console.log('Applied explicit CV edit mode with safe update-in-place flow.');
 }
