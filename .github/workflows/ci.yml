@@ -11,6 +11,10 @@ jobs:
       - run: npm install
       - name: Syntax checks
         run: for f in server/*.js; do node --check "$f"; done
+      - name: Patch public app twice
+        run: npm run patch:public && npm run patch:public
+      - name: Verify final CV renderer is injected once
+        run: node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const n=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;if(n!==1)throw new Error('Final CV renderer marker count: '+n);"
       - name: Generate PostgreSQL server
         run: npm run build:pg
       - name: Check generated PostgreSQL server
