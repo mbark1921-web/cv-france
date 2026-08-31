@@ -32,9 +32,17 @@ const finalStyles = String.raw`
 .cv-item-actions .cv-delete:hover{background:#fef3f2}
 .cv-empty-list{padding:18px;border:1px dashed #d0d5dd;border-radius:14px;color:#667085;text-align:center;background:#fcfcfd}
 #cvPreview{position:relative}
+html[dir='rtl'] #cvPreview{text-align:right}
+#cvPreview[dir='rtl'] h1,#cvPreview[dir='rtl'] h2,#cvPreview[dir='rtl'] p{text-align:right}
 @media(min-width:900px){.template-row>div:last-child{position:sticky;top:16px;align-self:start}}
 @media(max-width:640px){#cv .card{padding:16px}.cv-actions{align-items:stretch}.cv-actions button{flex:1 1 145px}.cv-edit-status{width:100%;justify-content:center}.cv-list-head{align-items:center}.cv-item{align-items:stretch}.cv-item-main{flex-basis:100%}.cv-item-actions{width:100%}.cv-item-actions button{flex:1 1 120px}}
 html[dir='rtl'] .cv-item-actions{direction:rtl}
+@media print{
+  .cv-actions,#pdfBtn,.cv-list-head,.cv-list,#cvList,#cvEditStatus,#newCvButton{display:none!important}
+  #cvPreview{direction:inherit!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}
+  #cvPreview h1,#cvPreview h2,#cvPreview p{break-inside:avoid;page-break-inside:avoid}
+  #cvPreview p{orphans:3;widows:3}
+}
 `;
 
 const finalRenderer = String.raw`
@@ -57,6 +65,8 @@ window.updateCvPreview=function(){
   const languages=get('cvLanguages');
 
   box.className='cv-preview '+template;
+  box.lang=lang==='ar'?'ar':'fr';
+  box.dir=lang==='ar'?'rtl':'ltr';
   box.replaceChildren();
 
   const h1=document.createElement('h1');
@@ -293,10 +303,6 @@ window.addEventListener('pageshow',()=>setTimeout(()=>{window.updateCvPreview();
 setTimeout(()=>{window.updateCvPreview();cvEditStatus()},100);
 `;
 
-// Keep visible version labels aligned with the package cleanup version.
-html = html.replace('<title>CV France v20</title>','<title>CV France v20.2</title>');
-html = html.replace('<h2>CV France <small>v20 Staging</small></h2>','<h2>CV France <small>v20.2 Staging</small></h2>');
-
 // Inject final workspace polish styles exactly once.
 if (!html.includes(styleMarker)) {
   html = html.replace('</style>', finalStyles + '</style>');
@@ -328,5 +334,5 @@ if (!html.includes('id="cvListCount"')) {
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied polished CV workspace, saved-list cards and safe edit flow.');
+  console.log('Applied polished CV workspace, RTL preview and PDF-safe controls.');
 }
