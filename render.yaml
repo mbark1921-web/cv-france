@@ -35,7 +35,7 @@ services:
         sync: false
 
       - key: REGISTRATION_MODE
-        value: closed
+        value: open
       - key: FEEDBACK_ENABLED
         value: "true"
       - key: CLIENT_ERROR_REPORTING
@@ -46,7 +46,7 @@ services:
         value: "off"
 
       - key: EMAIL_MODE
-        value: console
+        value: brevo
       - key: BREVO_API_KEY
         sync: false
       - key: BREVO_SENDER_EMAIL
