@@ -7,8 +7,6 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
   throw new Error(`Invalid package version: ${version}`);
 }
 
-const shortVersion = version.split('.').slice(0, 2).join('.');
-
 function replaceFile(filePath, replacements) {
   const abs = path.resolve(filePath);
   let text = fs.readFileSync(abs, 'utf8');
@@ -27,8 +25,8 @@ replaceFile('server/index.js', [
 ]);
 
 replaceFile('public/index.html', [
-  [/<title>CV France v[\d.]+<\/title>/, `<title>CV France v${shortVersion}</title>`],
-  [/<h2>CV France <small>v[\d.]+ Staging<\/small><\/h2>/, `<h2>CV France <small>v${shortVersion} Staging</small></h2>`],
-  [/Cette page est la version staging v[\d.]+\./g, `Cette page est la version staging v${shortVersion}.`],
-  [/هذه نسخة تجريبية v[\d.]+\./g, `هذه نسخة تجريبية v${shortVersion}.`]
+  [/<title>CV France v[\d.]+<\/title>/, `<title>CV France v${version}</title>`],
+  [/<h2>CV France <small>v[\d.]+ Staging<\/small><\/h2>/, `<h2>CV France <small>v${version} Staging</small></h2>`],
+  [/Cette page est la version staging v[\d.]+\./g, `Cette page est la version staging v${version}.`],
+  [/هذه نسخة تجريبية v[\d.]+\./g, `هذه نسخة تجريبية v${version}.`]
 ]);
