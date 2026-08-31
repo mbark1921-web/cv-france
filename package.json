@@ -1,11 +1,11 @@
 {
   "name": "cv-france-v20",
-  "version": "20.2.4",
+  "version": "20.2.5",
   "private": true,
   "type": "module",
   "engines": { "node": ">=24 <27" },
   "scripts": {
-    "patch:public": "node server/patch-version-consistency.js && node server/patch-public-i18n.js && node server/patch-cv-profile-fields.js && node server/patch-cv-preview-events.js && node server/patch-pdf-export.js && node server/patch-pdf-export-v2.js && node server/patch-sw-network-first.js && node server/patch-cv-preview-final.js && node server/patch-primary-workflow.js && node server/patch-record-management.js && node server/patch-application-edit.js && node server/patch-registration-state.js",
+    "patch:public": "node server/patch-version-consistency.js && node server/patch-public-i18n.js && node server/patch-cv-profile-fields.js && node server/patch-cv-preview-events.js && node server/patch-pdf-export.js && node server/patch-pdf-export-v2.js && node server/patch-sw-network-first.js && node server/patch-cv-preview-final.js && node server/patch-primary-workflow.js && node server/patch-record-management.js && node server/patch-application-edit.js && node server/patch-registration-state.js && node server/patch-password-reset-ui.js",
     "build:pg": "node server/pg-transform.js",
     "start": "npm run patch:public && npm run build:pg && node server/index.pg.generated.js",
     "dev": "npm run patch:public && npm run build:pg && node --watch server/index.pg.generated.js",
