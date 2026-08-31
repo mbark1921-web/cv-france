@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: APP_STAGE
-        value: staging
+        value: production
       - key: PORT
         value: 3000
       - key: DATABASE_URL
