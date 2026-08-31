@@ -5,6 +5,37 @@ const indexPath = path.resolve('public/index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 const before = html;
 const marker = 'CV_FINAL_RENDERER_V20_2';
+const styleMarker = 'CV_FINAL_POLISH_STYLES_V20_2';
+
+const finalStyles = String.raw`
+/* CV_FINAL_POLISH_STYLES_V20_2 */
+#cv .card{padding:24px}
+.cv-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 8px}
+.cv-actions .primary{min-width:132px}
+.cv-edit-status{display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;border-radius:999px;background:#f3f4f6;color:#475467;font-size:13px;font-weight:700}
+.cv-edit-status.editing{background:#fff7ed;color:#9a3412}
+.cv-list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb}
+.cv-list-head h4{margin:0;font-size:16px}
+.cv-list-count{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:5px 9px;border-radius:999px;background:#eef2f7;color:#344054;font-size:13px;font-weight:800}
+.cv-list{display:grid;gap:10px;margin-top:10px}
+.cv-item{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid #e4e7ec;border-radius:14px;background:#fff;transition:box-shadow .15s ease,border-color .15s ease}
+.cv-item:hover{border-color:#cfd4dc;box-shadow:0 5px 16px rgba(17,24,39,.06)}
+.cv-item.active{border-color:#98a2b3;background:#f9fafb}
+.cv-item-main{flex:1 1 280px;min-width:0}
+.cv-item-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;color:#18212f;overflow-wrap:anywhere}
+.cv-item-role{margin-top:4px;color:#667085;font-size:14px;overflow-wrap:anywhere}
+.cv-primary-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#ecfdf3;color:#067647;font-size:12px;font-weight:800}
+.cv-item-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cv-item-actions button{padding:8px 10px;border:1px solid #d0d5dd;background:#fff;color:#344054;font-size:13px}
+.cv-item-actions button:hover{background:#f9fafb}
+.cv-item-actions .cv-delete{color:#b42318;border-color:#fecdca;background:#fff}
+.cv-item-actions .cv-delete:hover{background:#fef3f2}
+.cv-empty-list{padding:18px;border:1px dashed #d0d5dd;border-radius:14px;color:#667085;text-align:center;background:#fcfcfd}
+#cvPreview{position:relative}
+@media(min-width:900px){.template-row>div:last-child{position:sticky;top:16px;align-self:start}}
+@media(max-width:640px){#cv .card{padding:16px}.cv-actions{align-items:stretch}.cv-actions button{flex:1 1 145px}.cv-edit-status{width:100%;justify-content:center}.cv-list-head{align-items:center}.cv-item{align-items:stretch}.cv-item-main{flex-basis:100%}.cv-item-actions{width:100%}.cv-item-actions button{flex:1 1 120px}}
+html[dir='rtl'] .cv-item-actions{direction:rtl}
+`;
 
 const finalRenderer = String.raw`
 // CV_FINAL_RENDERER_V20_2
@@ -92,11 +123,14 @@ function cvSet(id,value){const el=document.getElementById(id);if(el)el.value=val
 function cvEditStatus(){
   const el=document.getElementById('cvEditStatus');
   const newBtn=document.getElementById('newCvButton');
+  const listTitle=document.getElementById('cvListTitle');
   if(newBtn)newBtn.textContent=lang==='ar'?'سيرة ذاتية جديدة':'Nouveau CV';
+  if(listTitle)listTitle.textContent=lang==='ar'?'السير الذاتية المحفوظة':'CV enregistrés';
   if(!el)return;
+  el.classList.toggle('editing',Boolean(activeCvId));
   el.textContent=activeCvId
-    ?(lang==='ar'?'وضع التعديل — CV #'+activeCvId:'Mode modification — CV #'+activeCvId)
-    :(lang==='ar'?'وضع إنشاء سيرة جديدة':'Mode nouveau CV');
+    ?(lang==='ar'?'تعديل السيرة رقم '+activeCvId:'Modification du CV #'+activeCvId)
+    :(lang==='ar'?'إنشاء سيرة ذاتية جديدة':'Création d’un nouveau CV');
 }
 function cvBody(){return {
   title:cvGet('cvTitle')||(lang==='ar'?'سيرتي الذاتية':'Mon CV'),
@@ -133,6 +167,7 @@ window.loadCvIntoForm=function(cv){
   cvSet('cvTemplate',d.template||'classic');
   cvEditStatus();
   window.updateCvPreview();
+  window.loadCvsFinal();
   document.getElementById('cvTitle')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 window.newCvFinal=function(){
@@ -141,6 +176,8 @@ window.newCvFinal=function(){
   cvSet('cvTemplate','classic');
   cvEditStatus();
   window.updateCvPreview();
+  window.loadCvsFinal();
+  document.getElementById('cvTitle')?.focus();
 }
 window.saveCvFinal=async function(){
   const body=cvBody();
@@ -178,53 +215,69 @@ window.deleteCvFinal=async function(id){
 };
 window.loadCvsFinal=async function(){
   const box=document.getElementById('cvList');
+  const count=document.getElementById('cvListCount');
   if(box)box.replaceChildren();
-  if(!token){cvEditStatus();return}
+  if(!token){if(count)count.textContent='0';cvEditStatus();return}
   const r=await fetch(A+'/cvs',{headers:H()});
   const d=await r.json();
   if(!r.ok)return;
   const cvs=Array.isArray(d.cvs)?d.cvs:[];
+  if(count)count.textContent=String(cvs.length);
+  if(box&&cvs.length===0){
+    const empty=document.createElement('div');
+    empty.className='cv-empty-list';
+    empty.textContent=lang==='ar'?'لم تحفظ أي سيرة ذاتية بعد.':'Aucun CV enregistré pour le moment.';
+    box.appendChild(empty);
+  }
   if(box){
     cvs.forEach(cv=>{
       const row=document.createElement('div');
-      row.style.display='flex';
-      row.style.alignItems='center';
-      row.style.gap='8px';
-      row.style.flexWrap='wrap';
-      row.style.padding='10px 0';
-      row.style.borderBottom='1px solid #e5e7eb';
+      row.className='cv-item'+(Number(activeCvId)===Number(cv.id)?' active':'');
 
-      const label=document.createElement('span');
-      label.style.flex='1 1 260px';
-      label.textContent=cv.title+(cv.target_role?' — '+cv.target_role:'');
-      row.appendChild(label);
-
+      const main=document.createElement('div');
+      main.className='cv-item-main';
+      const title=document.createElement('div');
+      title.className='cv-item-title';
+      const titleText=document.createElement('span');
+      titleText.textContent=cv.title||(lang==='ar'?'سيرة بدون عنوان':'CV sans titre');
+      title.appendChild(titleText);
       if(cv.is_primary){
         const primary=document.createElement('span');
-        primary.className='muted';
+        primary.className='cv-primary-badge';
         primary.textContent=lang==='ar'?'الرئيسية':'Principal';
-        row.appendChild(primary);
-      }else{
+        title.appendChild(primary);
+      }
+      const role=document.createElement('div');
+      role.className='cv-item-role';
+      role.textContent=cv.target_role||(lang==='ar'?'بدون وظيفة محددة':'Poste non renseigné');
+      main.appendChild(title);
+      main.appendChild(role);
+      row.appendChild(main);
+
+      const actions=document.createElement('div');
+      actions.className='cv-item-actions';
+      if(!cv.is_primary){
         const primaryBtn=document.createElement('button');
         primaryBtn.type='button';
         primaryBtn.textContent=lang==='ar'?'اجعلها الرئيسية':'Définir principal';
         primaryBtn.onclick=()=>window.setPrimaryCvFinal(cv.id);
-        row.appendChild(primaryBtn);
+        actions.appendChild(primaryBtn);
       }
 
       const editBtn=document.createElement('button');
       editBtn.type='button';
       editBtn.textContent=lang==='ar'?'تعديل':'Modifier';
       editBtn.onclick=()=>window.loadCvIntoForm(cv);
-      row.appendChild(editBtn);
+      actions.appendChild(editBtn);
 
       const deleteBtn=document.createElement('button');
       deleteBtn.type='button';
+      deleteBtn.className='cv-delete';
       deleteBtn.textContent=lang==='ar'?'حذف':'Supprimer';
-      deleteBtn.style.color='#991b1b';
       deleteBtn.onclick=()=>window.deleteCvFinal(cv.id);
-      row.appendChild(deleteBtn);
+      actions.appendChild(deleteBtn);
 
+      row.appendChild(actions);
       box.appendChild(row);
     });
   }
@@ -240,6 +293,15 @@ window.addEventListener('pageshow',()=>setTimeout(()=>{window.updateCvPreview();
 setTimeout(()=>{window.updateCvPreview();cvEditStatus()},100);
 `;
 
+// Keep visible version labels aligned with the package cleanup version.
+html = html.replace('<title>CV France v20</title>','<title>CV France v20.2</title>');
+html = html.replace('<h2>CV France <small>v20 Staging</small></h2>','<h2>CV France <small>v20.2 Staging</small></h2>');
+
+// Inject final workspace polish styles exactly once.
+if (!html.includes(styleMarker)) {
+  html = html.replace('</style>', finalStyles + '</style>');
+}
+
 // Never inject the final renderer twice if patch:public is run repeatedly.
 if (!html.includes(marker)) {
   html = html.replace('</script></body>', finalRenderer + '</script></body>');
@@ -252,11 +314,19 @@ html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
 if (!html.includes('id="cvEditStatus"')) {
   html = html.replace(
     '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
-    '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" id="newCvButton" onclick="newCvFinal()">Nouveau CV</button><span id="cvEditStatus" class="muted" style="margin-inline-start:10px"></span>'
+    '<div class="cv-actions"><button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" id="newCvButton" onclick="newCvFinal()">Nouveau CV</button><span id="cvEditStatus" class="cv-edit-status"></span></div>'
+  );
+}
+
+// Give the saved CV list a clean title and visible count.
+if (!html.includes('id="cvListCount"')) {
+  html = html.replace(
+    '<div id="cvList"></div>',
+    '<div class="cv-list-head"><h4 id="cvListTitle">CV enregistrés</h4><span id="cvListCount" class="cv-list-count">0</span></div><div id="cvList" class="cv-list"></div>'
   );
 }
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied clean CV edit flow, list actions and idempotent final renderer.');
+  console.log('Applied polished CV workspace, saved-list cards and safe edit flow.');
 }
