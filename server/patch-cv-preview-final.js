@@ -4,9 +4,11 @@ import path from 'path';
 const indexPath = path.resolve('public/index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 const before = html;
+const marker = 'CV_FINAL_RENDERER_V20_2';
 
 const finalRenderer = String.raw`
-// Final authoritative CV preview renderer. This runs after all other public patches.
+// CV_FINAL_RENDERER_V20_2
+// Final authoritative CV preview and edit renderer.
 window.updateCvPreview=function(){
   const box=document.getElementById('cvPreview');
   if(!box)return;
@@ -89,6 +91,8 @@ function cvGet(id){const el=document.getElementById(id);return el?String(el.valu
 function cvSet(id,value){const el=document.getElementById(id);if(el)el.value=value||''}
 function cvEditStatus(){
   const el=document.getElementById('cvEditStatus');
+  const newBtn=document.getElementById('newCvButton');
+  if(newBtn)newBtn.textContent=lang==='ar'?'سيرة ذاتية جديدة':'Nouveau CV';
   if(!el)return;
   el.textContent=activeCvId
     ?(lang==='ar'?'وضع التعديل — CV #'+activeCvId:'Mode modification — CV #'+activeCvId)
@@ -145,7 +149,7 @@ window.saveCvFinal=async function(){
   const method=editing?'PUT':'POST';
   const r=await fetch(url,{method,headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
-  if(!r.ok)return note(d.error,true);
+  if(!r.ok)return note(d.error||'Erreur',true);
   if(!editing&&d.id)activeCvId=Number(d.id);
   cvEditStatus();
   note(editing
@@ -154,10 +158,28 @@ window.saveCvFinal=async function(){
   await window.loadCvsFinal();
   loadDashboard();
 };
+window.setPrimaryCvFinal=async function(id){
+  const r=await fetch(A+'/cvs/'+id+'/primary',{method:'POST',headers:H()});
+  const d=await r.json();
+  if(!r.ok)return note(d.error||'Erreur',true);
+  note(lang==='ar'?'تم تعيين السيرة الرئيسية':'CV principal défini');
+  await window.loadCvsFinal();
+};
+window.deleteCvFinal=async function(id){
+  const ok=confirm(lang==='ar'?'حذف هذه السيرة الذاتية نهائياً؟':'Supprimer définitivement ce CV ?');
+  if(!ok)return;
+  const r=await fetch(A+'/cvs/'+id,{method:'DELETE',headers:H()});
+  const d=await r.json();
+  if(!r.ok)return note(d.error||'Erreur',true);
+  if(Number(activeCvId)===Number(id))window.newCvFinal();
+  note(lang==='ar'?'تم حذف السيرة الذاتية':'CV supprimé');
+  await window.loadCvsFinal();
+  loadDashboard();
+};
 window.loadCvsFinal=async function(){
-  if(!token)return;
   const box=document.getElementById('cvList');
   if(box)box.replaceChildren();
+  if(!token){cvEditStatus();return}
   const r=await fetch(A+'/cvs',{headers:H()});
   const d=await r.json();
   if(!r.ok)return;
@@ -169,15 +191,40 @@ window.loadCvsFinal=async function(){
       row.style.alignItems='center';
       row.style.gap='8px';
       row.style.flexWrap='wrap';
-      row.style.margin='8px 0';
+      row.style.padding='10px 0';
+      row.style.borderBottom='1px solid #e5e7eb';
+
       const label=document.createElement('span');
+      label.style.flex='1 1 260px';
       label.textContent=cv.title+(cv.target_role?' — '+cv.target_role:'');
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.textContent=lang==='ar'?'تعديل':'Modifier';
-      btn.onclick=()=>window.loadCvIntoForm(cv);
       row.appendChild(label);
-      row.appendChild(btn);
+
+      if(cv.is_primary){
+        const primary=document.createElement('span');
+        primary.className='muted';
+        primary.textContent=lang==='ar'?'الرئيسية':'Principal';
+        row.appendChild(primary);
+      }else{
+        const primaryBtn=document.createElement('button');
+        primaryBtn.type='button';
+        primaryBtn.textContent=lang==='ar'?'اجعلها الرئيسية':'Définir principal';
+        primaryBtn.onclick=()=>window.setPrimaryCvFinal(cv.id);
+        row.appendChild(primaryBtn);
+      }
+
+      const editBtn=document.createElement('button');
+      editBtn.type='button';
+      editBtn.textContent=lang==='ar'?'تعديل':'Modifier';
+      editBtn.onclick=()=>window.loadCvIntoForm(cv);
+      row.appendChild(editBtn);
+
+      const deleteBtn=document.createElement('button');
+      deleteBtn.type='button';
+      deleteBtn.textContent=lang==='ar'?'حذف':'Supprimer';
+      deleteBtn.style.color='#991b1b';
+      deleteBtn.onclick=()=>window.deleteCvFinal(cv.id);
+      row.appendChild(deleteBtn);
+
       box.appendChild(row);
     });
   }
@@ -193,16 +240,23 @@ window.addEventListener('pageshow',()=>setTimeout(()=>{window.updateCvPreview();
 setTimeout(()=>{window.updateCvPreview();cvEditStatus()},100);
 `;
 
-html = html.replace('</script></body>', finalRenderer + '</script></body>');
+// Never inject the final renderer twice if patch:public is run repeatedly.
+if (!html.includes(marker)) {
+  html = html.replace('</script></body>', finalRenderer + '</script></body>');
+}
+
 // Robustly rebind every remaining CV save call after all other public patches have run.
 html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
-// Add explicit save/new actions and a visible edit-mode indicator.
-html = html.replace(
-  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
-  '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" onclick="newCvFinal()">Nouveau CV</button><span id="cvEditStatus" class="muted" style="margin-inline-start:10px"></span>'
-);
+
+// Add explicit save/new actions and a visible edit-mode indicator once.
+if (!html.includes('id="cvEditStatus"')) {
+  html = html.replace(
+    '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
+    '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button><button type="button" id="newCvButton" onclick="newCvFinal()">Nouveau CV</button><span id="cvEditStatus" class="muted" style="margin-inline-start:10px"></span>'
+  );
+}
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied explicit CV edit mode with safe update-in-place flow.');
+  console.log('Applied clean CV edit flow, list actions and idempotent final renderer.');
 }
