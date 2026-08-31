@@ -38,8 +38,16 @@ html[dir='rtl'] #cvPreview{text-align:right}
 @media(max-width:640px){#cv .card{padding:16px}.cv-actions{align-items:stretch}.cv-actions button{flex:1 1 145px}.cv-edit-status{width:100%;justify-content:center}.cv-list-head{align-items:center}.cv-item{align-items:stretch}.cv-item-main{flex-basis:100%}.cv-item-actions{width:100%}.cv-item-actions button{flex:1 1 120px}}
 html[dir='rtl'] .cv-item-actions{direction:rtl}
 @media print{
-  .cv-actions,#pdfBtn,.cv-list-head,.cv-list,#cvList,#cvEditStatus,#newCvButton{display:none!important}
-  #cvPreview{direction:inherit!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}
+  @page{size:A4 portrait;margin:12mm}
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  body *{visibility:hidden!important}
+  #cvPreview,#cvPreview *{visibility:visible!important}
+  #cvPreview{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;min-height:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}
+  html[dir='rtl'] #cvPreview{right:0!important;left:auto!important}
+  #cvPreview.classic{border-top:6px solid #111827!important;padding-top:12mm!important}
+  #cvPreview.modern{border-left:10px solid #111827!important;padding:12mm!important}
+  html[dir='rtl'] #cvPreview.modern{border-left:0!important;border-right:10px solid #111827!important}
+  #cvPreview.elegant{border:0!important;padding:10mm!important}
   #cvPreview h1,#cvPreview h2,#cvPreview p{break-inside:avoid;page-break-inside:avoid}
   #cvPreview p{orphans:3;widows:3}
 }
@@ -294,7 +302,6 @@ window.loadCvsFinal=async function(){
   cvEditStatus();
 };
 
-// Replace the old loader used by navigation and post-save refreshes.
 loadCvs=window.loadCvsFinal;
 
 document.addEventListener('input',e=>{if(e.target&&String(e.target.id||'').startsWith('cv'))window.updateCvPreview()});
@@ -303,20 +310,19 @@ window.addEventListener('pageshow',()=>setTimeout(()=>{window.updateCvPreview();
 setTimeout(()=>{window.updateCvPreview();cvEditStatus()},100);
 `;
 
-// Inject final workspace polish styles exactly once.
+html = html.replace('<title>CV France v20</title>','<title>CV France v20.2</title>');
+html = html.replace('<h2>CV France <small>v20 Staging</small></h2>','<h2>CV France <small>v20.2 Staging</small></h2>');
+
 if (!html.includes(styleMarker)) {
   html = html.replace('</style>', finalStyles + '</style>');
 }
 
-// Never inject the final renderer twice if patch:public is run repeatedly.
 if (!html.includes(marker)) {
   html = html.replace('</script></body>', finalRenderer + '</script></body>');
 }
 
-// Robustly rebind every remaining CV save call after all other public patches have run.
 html = html.replaceAll('onclick="saveCv()"','onclick="saveCvFinal()"');
 
-// Add explicit save/new actions and a visible edit-mode indicator once.
 if (!html.includes('id="cvEditStatus"')) {
   html = html.replace(
     '<button class="primary" data-i18n="save" onclick="saveCvFinal()">Enregistrer</button>',
@@ -324,7 +330,6 @@ if (!html.includes('id="cvEditStatus"')) {
   );
 }
 
-// Give the saved CV list a clean title and visible count.
 if (!html.includes('id="cvListCount"')) {
   html = html.replace(
     '<div id="cvList"></div>',
@@ -334,5 +339,5 @@ if (!html.includes('id="cvListCount"')) {
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied polished CV workspace, RTL preview and PDF-safe controls.');
+  console.log('Applied polished CV workspace, saved-list cards, RTL preview and print-safe CV output.');
 }
