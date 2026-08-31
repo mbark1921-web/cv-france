@@ -48,10 +48,16 @@ services:
       - key: EMAIL_MODE
         value: console
       - key: SMTP_HOST
-        sync: false
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
         sync: false
 
       - key: STRIPE_SECRET_KEY
