@@ -1,11 +1,11 @@
-# CV France v20
+# CV France v20.2.1
 
 Application de création de CV, lettres de motivation et suivi de candidatures.
 
-## Staging Render
-Le dépôt contient `render.yaml` pour créer un service Docker avec disque persistant `/data`.
+## Production Render
+Le dépôt contient `render.yaml` pour déployer le service Docker en production. L'hébergement reste configuré sur le plan gratuit (`plan: free`).
 
-Ordre conseillé: déployer d'abord avec `EMAIL_MODE=console`, `AI_MODE=mock`, Stripe désactivé, puis tester `/api/health` et `/api/readiness`.
+Configuration actuelle: `APP_STAGE=production`, `EMAIL_MODE=console`, `AI_MODE=mock`. Stripe reste optionnel tant que les variables correspondantes ne sont pas configurées.
 
 ## Sécurité
 Ne jamais committer `.env`, clés API, secrets Stripe, mots de passe SMTP ou bases SQLite. `.gitignore` protège ces fichiers.

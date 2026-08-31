@@ -19,9 +19,9 @@ jobs:
       - name: Verify RTL preview and PDF preview-only print
         run: |
           node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');if(!s.includes(\"box.dir=lang==='ar'?'rtl':'ltr'\"))throw new Error('RTL preview direction missing');if(!s.includes('body *{visibility:hidden!important}'))throw new Error('global print hiding missing');if(!s.includes('#cvPreview,#cvPreview *{visibility:visible!important}'))throw new Error('preview print visibility missing');if(!s.includes(\"#cvPreview[dir='rtl'] h1\"))throw new Error('RTL print alignment missing');"
-      - name: Verify version consistency
+      - name: Verify production version consistency
         run: |
-          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const server=fs.readFileSync('server/index.js','utf8');const html=fs.readFileSync('public/index.html','utf8');if(!server.includes('version: \"'+pkg.version+'\"'))throw new Error('health version mismatch');if(!html.includes('v'+pkg.version+' Staging'))throw new Error('visible version mismatch');if(!html.includes('version staging v'+pkg.version+'.'))throw new Error('French staging copy mismatch');if(!html.includes('نسخة تجريبية v'+pkg.version+'.'))throw new Error('Arabic staging copy mismatch');"
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const server=fs.readFileSync('server/index.js','utf8');const html=fs.readFileSync('public/index.html','utf8');const render=fs.readFileSync('render.yaml','utf8');if(!server.includes('version: \"'+pkg.version+'\"'))throw new Error('health version mismatch');if(!html.includes('v'+pkg.version+' Production'))throw new Error('visible production version mismatch');if(!html.includes('version officielle v'+pkg.version+'.'))throw new Error('French production copy mismatch');if(!html.includes('النسخة الرسمية v'+pkg.version+'.'))throw new Error('Arabic production copy mismatch');if(!render.includes('value: production'))throw new Error('production stage missing');if(!render.includes('plan: free'))throw new Error('free hosting plan changed');"
       - name: Generate PostgreSQL server
         run: npm run build:pg
       - name: Check generated PostgreSQL server
