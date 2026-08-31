@@ -16,6 +16,9 @@ jobs:
       - name: Verify final CV renderer and styles are injected once
         run: |
           node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const r=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;const c=(s.match(/CV_FINAL_POLISH_STYLES_V20_2/g)||[]).length;if(r!==1||c!==1)throw new Error('renderer='+r+', styles='+c);"
+      - name: Verify script tags are balanced and registration UI is separate
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const o=(s.match(/<script(?:\s|>)/g)||[]).length;const c=(s.match(/<\/script>/g)||[]).length;if(o!==c)throw new Error('script tags unbalanced: open='+o+', close='+c);if(!s.includes('</script>\n<script>/* REGISTRATION_STATE_UI_V20_2_4 */'))throw new Error('registration script not separated from main script');"
       - name: Verify RTL preview and PDF preview-only print
         run: |
           node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');if(!s.includes(\"box.dir=lang==='ar'?'rtl':'ltr'\"))throw new Error('RTL preview direction missing');if(!s.includes('body *{visibility:hidden!important}'))throw new Error('global print hiding missing');if(!s.includes('#cvPreview,#cvPreview *{visibility:visible!important}'))throw new Error('preview print visibility missing');if(!s.includes(\"#cvPreview[dir='rtl'] h1\"))throw new Error('RTL print alignment missing');"
