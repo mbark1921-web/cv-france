@@ -47,6 +47,12 @@ services:
 
       - key: EMAIL_MODE
         value: console
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: CV France
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
