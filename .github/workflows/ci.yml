@@ -13,9 +13,9 @@ jobs:
         run: for f in server/*.js; do node --check "$f"; done
       - name: Patch public app twice
         run: npm run patch:public && npm run patch:public
-      - name: Verify final CV renderer is injected once
+      - name: Verify final CV renderer and styles are injected once
         run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const n=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;if(n!==1)throw new Error('renderer marker count='+n);"
+          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const r=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;const c=(s.match(/CV_FINAL_POLISH_STYLES_V20_2/g)||[]).length;if(r!==1||c!==1)throw new Error('renderer='+r+', styles='+c);"
       - name: Generate PostgreSQL server
         run: npm run build:pg
       - name: Check generated PostgreSQL server
