@@ -16,7 +16,7 @@ function replaceFile(filePath, replacements) {
   }
   if (text !== before) {
     fs.writeFileSync(abs, text, 'utf8');
-    console.log(`Synced version in ${filePath} -> ${version}`);
+    console.log(`Synced production version in ${filePath} -> ${version}`);
   }
 }
 
@@ -26,7 +26,9 @@ replaceFile('server/index.js', [
 
 replaceFile('public/index.html', [
   [/<title>CV France v[\d.]+<\/title>/, `<title>CV France v${version}</title>`],
-  [/<h2>CV France <small>v[\d.]+ Staging<\/small><\/h2>/, `<h2>CV France <small>v${version} Staging</small></h2>`],
-  [/Cette page est la version staging v[\d.]+\./g, `Cette page est la version staging v${version}.`],
-  [/هذه نسخة تجريبية v[\d.]+\./g, `هذه نسخة تجريبية v${version}.`]
+  [/<h2>CV France <small>v[\d.]+ (?:Staging|Production)<\/small><\/h2>/, `<h2>CV France <small>v${version} Production</small></h2>`],
+  [/Cette page est la version staging v[\d.]+\./g, `Cette page est la version officielle v${version}.`],
+  [/Cette page est la version officielle v[\d.]+\./g, `Cette page est la version officielle v${version}.`],
+  [/هذه نسخة تجريبية v[\d.]+\./g, `هذه هي النسخة الرسمية v${version}.`],
+  [/هذه هي النسخة الرسمية v[\d.]+\./g, `هذه هي النسخة الرسمية v${version}.`]
 ]);
