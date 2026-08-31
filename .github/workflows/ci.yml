@@ -18,7 +18,7 @@ jobs:
           node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const r=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;const c=(s.match(/CV_FINAL_POLISH_STYLES_V20_2/g)||[]).length;if(r!==1||c!==1)throw new Error('renderer='+r+', styles='+c);"
       - name: Verify version consistency
         run: |
-          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const server=fs.readFileSync('server/index.js','utf8');const html=fs.readFileSync('public/index.html','utf8');const short=pkg.version.split('.').slice(0,2).join('.');if(!server.includes('version: \"'+pkg.version+'\"'))throw new Error('health version mismatch');if(!html.includes('v'+short+' Staging'))throw new Error('visible version mismatch');"
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const server=fs.readFileSync('server/index.js','utf8');const html=fs.readFileSync('public/index.html','utf8');if(!server.includes('version: \"'+pkg.version+'\"'))throw new Error('health version mismatch');if(!html.includes('v'+pkg.version+' Staging'))throw new Error('visible version mismatch');if(!html.includes('version staging v'+pkg.version+'.'))throw new Error('French staging copy mismatch');if(!html.includes('نسخة تجريبية v'+pkg.version+'.'))throw new Error('Arabic staging copy mismatch');"
       - name: Generate PostgreSQL server
         run: npm run build:pg
       - name: Check generated PostgreSQL server
