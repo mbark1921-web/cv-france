@@ -12,7 +12,7 @@ let activeApplicationId=null;
 function clearApplicationForm(){
   activeApplicationId=null;
   ['appCompany','appRole','appNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-  const status=document.getElementById('appStatus');if(status)status.value=lang==='ar'?'Envoyée':'Envoyée';
+  const status=document.getElementById('appStatus');if(status)status.value='Envoyée';
   const date=document.getElementById('appDate');if(date)date.value='';
   if(typeof prefillPrimaryWorkflow==='function')prefillPrimaryWorkflow('apps');
   updateApplicationMode();
@@ -35,46 +35,43 @@ window.loadApplicationIntoForm=function(app){
   document.getElementById('appCompany')?.scrollIntoView({behavior:'smooth',block:'center'});
 };
 window.saveApplicationFinal=async function(){
-  const body={
-    company:v('appCompany'),
-    role:v('appRole'),
-    status:v('appStatus'),
-    applied_date:v('appDate'),
-    notes:v('appNotes')
-  };
+  const body={company:v('appCompany'),role:v('appRole'),status:v('appStatus'),applied_date:v('appDate'),notes:v('appNotes')};
   const editing=Number.isInteger(activeApplicationId)&&activeApplicationId>0;
-  const r=await fetch(editing?A+'/applications/'+activeApplicationId:A+'/applications',{
-    method:editing?'PUT':'POST',headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)
-  });
-  const d=await r.json();
-  if(!r.ok)return note(d.error||T[lang].serverError,true);
-  if(!editing&&d.id)activeApplicationId=Number(d.id);
-  note(editing?(lang==='ar'?'تم تحديث طلب العمل':'Candidature mise à jour'):T[lang].appSaved);
-  updateApplicationMode();
-  await window.loadAppsFinal();
-  loadDashboard();
+  if(!editing){
+    const r=await fetch(A+'/applications',{method:'POST',headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok)return note(d.error||T[lang].serverError,true);
+    if(d.id)activeApplicationId=Number(d.id);
+    note(T[lang].appSaved);updateApplicationMode();await window.loadAppsFinal();loadDashboard();return;
+  }
+
+  const oldId=activeApplicationId;
+  const create=await fetch(A+'/applications',{method:'POST',headers:{...H(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const created=await create.json();
+  if(!create.ok)return note(created.error||T[lang].serverError,true);
+  const newId=Number(created.id);
+  const removeOld=await fetch(A+'/applications/'+oldId,{method:'DELETE',headers:H()});
+  if(!removeOld.ok){
+    if(Number.isInteger(newId))await fetch(A+'/applications/'+newId,{method:'DELETE',headers:H()}).catch(()=>{});
+    return note(lang==='ar'?'تعذر تحديث طلب العمل':'Impossible de mettre à jour la candidature',true);
+  }
+  activeApplicationId=Number.isInteger(newId)?newId:null;
+  note(lang==='ar'?'تم تحديث طلب العمل':'Candidature mise à jour');
+  updateApplicationMode();await window.loadAppsFinal();loadDashboard();
 };
-const oldLoadAppsFinal=window.loadAppsFinal;
 window.loadAppsFinal=async function(){
-  const box=document.getElementById('appList');
-  if(!box||!token)return;
+  const box=document.getElementById('appList');if(!box||!token)return;
   box.replaceChildren();
-  const r=await fetch(A+'/applications',{headers:H()});
-  const d=await r.json();
-  if(!r.ok)return;
+  const r=await fetch(A+'/applications',{headers:H()}),d=await r.json();if(!r.ok)return;
   (Array.isArray(d.applications)?d.applications:[]).forEach(app=>{
     const row=document.createElement('div');row.className='record-item';
     const main=document.createElement('div');main.className='record-main';
-    const title=document.createElement('strong');title.textContent=app.company|| (lang==='ar'?'شركة غير محددة':'Entreprise non renseignée');
-    const metaParts=[app.role,app.status,app.applied_date].filter(Boolean);
-    const meta=document.createElement('div');meta.className='muted';meta.textContent=metaParts.join(' — ');
+    const title=document.createElement('strong');title.textContent=app.company||(lang==='ar'?'شركة غير محددة':'Entreprise non renseignée');
+    const meta=document.createElement('div');meta.className='muted';meta.textContent=[app.role,app.status,app.applied_date].filter(Boolean).join(' — ');
     main.append(title,meta);
     if(app.notes){const notes=document.createElement('div');notes.className='muted';notes.textContent=app.notes;main.appendChild(notes)}
     const actions=document.createElement('div');actions.className='record-actions';
-    actions.append(
-      recordButton(lang==='ar'?'تعديل':'Modifier',()=>window.loadApplicationIntoForm(app)),
-      recordButton(lang==='ar'?'حذف':'Supprimer',()=>window.deleteApplicationFinal(app.id),'record-delete')
-    );
+    actions.append(recordButton(lang==='ar'?'تعديل':'Modifier',()=>window.loadApplicationIntoForm(app)),recordButton(lang==='ar'?'حذف':'Supprimer',()=>window.deleteApplicationFinal(app.id),'record-delete'));
     row.append(main,actions);box.appendChild(row);
   });
   updateApplicationMode();
@@ -94,5 +91,4 @@ if(!html.includes('id="appDate"')){
 }
 
 html=html.replaceAll('onclick="saveApp()"','onclick="saveApplicationFinal()"');
-
 if(html!==before){fs.writeFileSync(indexPath,html,'utf8');console.log('Applied application edit workflow.');}
