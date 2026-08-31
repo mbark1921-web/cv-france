@@ -35,7 +35,7 @@ services:
         sync: false
 
       - key: REGISTRATION_MODE
-        value: open
+        value: closed
       - key: FEEDBACK_ENABLED
         value: "true"
       - key: CLIENT_ERROR_REPORTING
