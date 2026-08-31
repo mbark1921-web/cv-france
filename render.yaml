@@ -46,7 +46,7 @@ services:
         value: "off"
 
       - key: EMAIL_MODE
-        value: console
+        value: smtp
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
