@@ -12,6 +12,10 @@ if (!html.includes(marker)) {
 function syncApplicationI18n(){
   const button=document.getElementById('newApplicationButton');
   if(button)button.textContent=lang==='ar'?'طلب عمل جديد':'Nouvelle candidature';
+  const mode=document.getElementById('appEditStatus');
+  if(mode)mode.textContent=activeApplicationId
+    ?(lang==='ar'?'الوضع: تعديل طلب العمل رقم '+activeApplicationId:'Mode : modification de la candidature #'+activeApplicationId)
+    :(lang==='ar'?'الوضع: إنشاء طلب عمل جديد':'Mode : création');
   const notes=document.getElementById('appNotes');
   if(notes){
     notes.placeholder=lang==='ar'?'ملاحظات':'Notes';
@@ -41,5 +45,5 @@ setTimeout(()=>syncApplicationI18n(),140);
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('Applied bilingual application form labels.');
+  console.log('Applied bilingual application form labels and clearer mode status.');
 }
