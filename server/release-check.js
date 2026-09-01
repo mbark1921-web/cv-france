@@ -15,7 +15,7 @@ for(const id of ['home','account','cv','letters','apps','ats','interview','feedb
   requireOnce(`id="${id}"`,`section ${id}`);
 }
 
-for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList','letterList','appList','fbRating','fbCategory','fbMessage']){
+for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList','letterList','appList','fbRating','fbCategory','fbMessage','cvPhotoInput']){
   requireOnce(`id="${id}"`,`control ${id}`);
 }
 
@@ -26,12 +26,17 @@ for(const marker of [
   'CV_UI_LANGUAGE_SYNC_V20_3_1',
   'CONNECTED_ACCOUNT_LAYOUT_V20_3_7_SCRIPT',
   'FEEDBACK_SECTION_LAYOUT_V20_3_8_SCRIPT',
-  'HOME_DASHBOARD_LAYOUT_V20_3_9_SCRIPT'
+  'HOME_DASHBOARD_LAYOUT_V20_3_9_SCRIPT',
+  'OPTIONAL_CV_PHOTO_V20_4_1_SCRIPT'
 ])requireOnce(marker,marker);
 
 for(const text of [
   'Accès rapide','ابدأ بسرعة','Créer un nouveau CV','إنشاء سيرة ذاتية جديدة',
   'Mon compte','حسابي','Aidez-nous à améliorer','ساعدنا على تحسين',
+  'Photo personnelle (facultative)','الصورة الشخصية (اختيارية)',
+  "body.data.photo=cvPhotoData",
+  "cv?.data?.photo||''",
+  'cv-photo-preview',
   "document.documentElement.dir=lang==='ar'?'rtl':'ltr'",
   '@media(max-width:800px)'
 ])requireText(text,`release requirement`);
@@ -46,4 +51,4 @@ if(!html.includes(`version officielle v${pkg.version}.`))throw new Error('French
 if(!html.includes(`النسخة الرسمية v${pkg.version}.`))throw new Error('Arabic version copy mismatch');
 if(!render.includes('value: production')||!render.includes('plan: free'))throw new Error('Render production settings mismatch');
 
-console.log(`Release check passed: CV France v${pkg.version}, 8 sections, ${scriptsOpen} scripts.`);
+console.log(`Release check passed: CV France v${pkg.version}, 8 sections, optional photo, ${scriptsOpen} scripts.`);
