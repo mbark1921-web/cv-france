@@ -19,6 +19,7 @@ for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList'
   requireOnce(`id="${id}"`,`control ${id}`);
 }
 requireOnce("input.id='cvPhotoInput'",'control cvPhotoInput');
+requireOnce("control.id='cvColorControl'",'control cvColorControl');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -28,14 +29,18 @@ for(const marker of [
   'CONNECTED_ACCOUNT_LAYOUT_V20_3_7_SCRIPT',
   'FEEDBACK_SECTION_LAYOUT_V20_3_8_SCRIPT',
   'HOME_DASHBOARD_LAYOUT_V20_3_9_SCRIPT',
-  'OPTIONAL_CV_PHOTO_V20_4_1_SCRIPT'
+  'OPTIONAL_CV_PHOTO_V20_4_1_SCRIPT',
+  'CV_COLOR_PICKER_V20_4_2_SCRIPT'
 ])requireOnce(marker,marker);
 
 for(const text of [
   'Accès rapide','ابدأ بسرعة','Créer un nouveau CV','إنشاء سيرة ذاتية جديدة',
   'Mon compte','حسابي','Aidez-nous à améliorer','ساعدنا على تحسين',
   'Photo personnelle (facultative)','الصورة الشخصية (اختيارية)',
+  'Couleur du CV (facultative)','لون السيرة الذاتية (اختياري)',
   "body.data.photo=cvPhotoData",
+  "body.data.themeColor=cvThemeColor",
+  "box.style.setProperty('--cv-accent',cvThemeColor)",
   "cv?.data?.photo||''",
   'cv-photo-preview',
   "document.documentElement.dir=lang==='ar'?'rtl':'ltr'",
