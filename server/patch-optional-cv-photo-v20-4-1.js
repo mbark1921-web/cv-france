@@ -41,6 +41,7 @@ if(!html.includes(marker)){
   const originalLoad=window.loadCvIntoForm;window.loadCvIntoForm=function(cv){originalLoad(cv);cvPhotoData=String(cv?.data?.photo||'');input.value='';render()};
   const originalNew=window.newCvFinal;window.newCvFinal=function(){originalNew();cvPhotoData='';input.value='';render()};
   const originalPreview=window.updateCvPreview;window.updateCvPreview=function(){originalPreview();const box=document.getElementById('cvPreview');if(!box)return;box.classList.toggle('has-photo',Boolean(cvPhotoData));if(cvPhotoData){const photo=document.createElement('img');photo.className='cv-photo-preview';photo.src=cvPhotoData;photo.alt=document.documentElement.lang==='ar'?'الصورة الشخصية':'Photo personnelle';box.appendChild(photo)}};
+  window.printCvPreview=function(){window.updateCvPreview();requestAnimationFrame(()=>window.print())};
   new MutationObserver(()=>{translate();window.updateCvPreview()}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   render();
 })();
