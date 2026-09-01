@@ -29,5 +29,7 @@ jobs:
         run: npm run build:pg
       - name: Check generated PostgreSQL server
         run: node --check server/index.pg.generated.js
+      - name: Verify complete stable release
+        run: node server/release-check.js
       - name: Verify PostgreSQL package
         run: npm ls pg
