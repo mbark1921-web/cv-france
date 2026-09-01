@@ -21,6 +21,7 @@ for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList'
 requireOnce("input.id='cvPhotoInput'",'control cvPhotoInput');
 requireOnce("control.id='cvColorControl'",'control cvColorControl');
 requireOnce("option.value=value;select.appendChild(option)",'professional CV template options');
+requireOnce('PROFESSIONAL_CV_PRINT_FIT_V20_5_1','professional CV print fit');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -45,6 +46,7 @@ for(const text of [
   "box.style.setProperty('--cv-accent',cvThemeColor)",
   'Pro avec colonne','احترافي جانبي',
   "box.classList.add('pro-template')",
+  'grid-template-columns:38% 62%',
   "cv?.data?.photo||''",
   'cv-photo-preview',
   "document.documentElement.dir=lang==='ar'?'rtl':'ltr'",
