@@ -31,6 +31,19 @@ const replacement = String.raw`function analyzeAts(){
     return '';
   };
 
+  const normalizeToken=value=>{
+    let w=String(value||'').toLowerCase();
+    w=w.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g,'');
+    w=w.replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي');
+    if(/[\u0600-\u06FF]/.test(w)){
+      if(w.length>5&&/^(وال|فال|بال|كال)/.test(w))w=w.slice(3);
+      else if(w.length>4&&w.startsWith('لل'))w=w.slice(2);
+      else if(w.length>4&&w.startsWith('ال'))w=w.slice(2);
+      if(w.length>4&&/^[وفبكل]/.test(w))w=w.slice(1);
+    }
+    return w;
+  };
+
   const title=String(cv?.title||'').toLowerCase();
   const cvText=[cv?.title||'',cv?.target_role||'',flatten(data)].join(' ');
   const cvArabic=(cvText.match(/[\u0600-\u06FF]/g)||[]).length;
@@ -68,24 +81,34 @@ const replacement = String.raw`function analyzeAts(){
     return;
   }
 
-  const freq={};
-  offerWords.forEach(w=>freq[w]=(freq[w]||0)+1);
-  const keywords=[...new Set(offerWords)].sort((a,b)=>(freq[b]-freq[a])).slice(0,20);
-  const cvSet=new Set(atsTokens(cvText));
-  const found=keywords.filter(w=>cvSet.has(w));
-  const missing=keywords.filter(w=>!cvSet.has(w));
-  const score=Math.round(found.length/keywords.length*100);
+  const cvNormSet=new Set(atsTokens(cvText).map(normalizeToken).filter(Boolean));
+  const representatives=new Map();
+  const freq=new Map();
+  for(const original of offerWords){
+    const key=normalizeToken(original);
+    if(!key)continue;
+    if(!representatives.has(key))representatives.set(key,original);
+    freq.set(key,(freq.get(key)||0)+1);
+  }
+  const keywordKeys=[...freq.keys()].sort((a,b)=>(freq.get(b)-freq.get(a))).slice(0,20);
+  const found=[];
+  const missing=[];
+  for(const key of keywordKeys){
+    const label=representatives.get(key)||key;
+    (cvNormSet.has(key)?found:missing).push(label);
+  }
+  const score=keywordKeys.length?Math.round(found.length/keywordKeys.length*100):0;
   atsLast={score,found,missing};
   renderAts(atsLast);
 }
 `;
 
 html = html.slice(0,start)+replacement+html.slice(end);
-html = html.replace('data-i18n="analyze" onclick="analyzeAts()"','data-i18n="analyze" data-ats-engine="direct-v20.2.9" onclick="analyzeAts()"');
+html = html.replace('data-i18n="analyze" onclick="analyzeAts()"','data-i18n="analyze" data-ats-engine="direct-v20.2.9-ar-normalized" onclick="analyzeAts()"');
 
-if (!html.includes('data-ats-engine="direct-v20.2.9"')) {
+if (!html.includes('data-ats-engine="direct-v20.2.9-ar-normalized"')) {
   throw new Error('ATS button marker missing');
 }
 
 fs.writeFileSync(file,html,'utf8');
-console.log('Applied single direct ATS analyzer.');
+console.log('Applied ATS analyzer with Arabic normalization.');
