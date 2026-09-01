@@ -55,6 +55,32 @@ if(!html.includes('function generateInterview(){')){
   html=html.replace('async function sendFeedback(){',fn+'async function sendFeedback(){');
 }
 
-if(!html.includes('function generateInterview(){'))throw new Error('Interview restore failed');
+// Keep the interview page reachable even when later runtime patches wrap or
+// replace the shared show() function. The previous restore only reinstated the
+// generator, so the navigation button could remain visible without opening the
+// interview section.
+if(!html.includes('function openInterviewPanel(){')){
+  const openInterview=String.raw`function openInterviewPanel(){
+    document.querySelectorAll('main section').forEach(section=>section.classList.add('hidden'));
+    const section=$('interview');
+    if(!section)return;
+    section.classList.remove('hidden');
+    if(typeof window.preparePrimaryWorkflow==='function'){
+      setTimeout(()=>window.preparePrimaryWorkflow('interview'),0);
+    }
+  }`;
+  html=html.replace('function generateInterview(){',openInterview+'function generateInterview(){');
+}
+
+html=html.replace(
+  /(<button[^>]*data-i18n="navInterview"[^>]*onclick=")show\('interview'\)("[^>]*>)/,
+  '$1openInterviewPanel()$2'
+);
+
+if(!html.includes('function generateInterview(){')||
+   !html.includes('function openInterviewPanel(){')||
+   !html.includes('onclick="openInterviewPanel()"')){
+  throw new Error('Interview restore failed');
+}
 fs.writeFileSync(file,html,'utf8');
 console.log('Restored interview question generator after ATS patch.');
