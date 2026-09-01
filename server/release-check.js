@@ -33,7 +33,8 @@ for(const marker of [
   'HOME_DASHBOARD_LAYOUT_V20_3_9_SCRIPT',
   'OPTIONAL_CV_PHOTO_V20_4_1_SCRIPT',
   'CV_COLOR_PICKER_V20_4_2_SCRIPT',
-  'PROFESSIONAL_CV_TEMPLATES_V20_5_0_SCRIPT'
+  'PROFESSIONAL_CV_TEMPLATES_V20_5_0_SCRIPT',
+  'MOBILE_STABILITY_NAVIGATION_V20_5_2_SCRIPT'
 ])requireOnce(marker,marker);
 
 for(const text of [
@@ -50,7 +51,9 @@ for(const text of [
   "cv?.data?.photo||''",
   'cv-photo-preview',
   "document.documentElement.dir=lang==='ar'?'rtl':'ltr'",
-  '@media(max-width:800px)'
+  '@media(max-width:800px)',
+  "navFeedback:'feedback'",
+  'overscroll-behavior-x:none'
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
