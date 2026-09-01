@@ -32,7 +32,8 @@ html[dir="rtl"] .cv-editor-section h4{flex-direction:row}
   layout.className='cv-form-sections';
   cv.appendChild(layout);
   function section(key,wide,extraClass){
-    const box=document.createElement('section');
+    // Use a div: the app's page router hides every nested <section> in <main>.
+    const box=document.createElement('div');
     box.className='cv-editor-section'+(wide?' cv-section-wide':'')+(extraClass?' '+extraClass:'');
     box.dataset.cvSection=key;
     const heading=document.createElement('h4');
