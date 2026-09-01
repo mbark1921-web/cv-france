@@ -15,9 +15,10 @@ for(const id of ['home','account','cv','letters','apps','ats','interview','feedb
   requireOnce(`id="${id}"`,`section ${id}`);
 }
 
-for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList','letterList','appList','fbRating','fbCategory','fbMessage','cvPhotoInput']){
+for(const id of ['health','dashCv','dashLetters','dashApps','cvPreview','cvList','letterList','appList','fbRating','fbCategory','fbMessage']){
   requireOnce(`id="${id}"`,`control ${id}`);
 }
+requireOnce("input.id='cvPhotoInput'",'control cvPhotoInput');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
