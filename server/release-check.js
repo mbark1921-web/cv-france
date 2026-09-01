@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const server=fs.readFileSync('server/index.js','utf8');
 const render=fs.readFileSync('render.yaml','utf8');
+const serviceWorker=fs.readFileSync('public/sw.js','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 const requireText=(value,label)=>{if(!html.includes(value))throw new Error(`Missing ${label}: ${value}`)};
@@ -65,5 +66,7 @@ if(!html.includes(`v${pkg.version} Production`))throw new Error('Visible version
 if(!html.includes(`version officielle v${pkg.version}.`))throw new Error('French version copy mismatch');
 if(!html.includes(`النسخة الرسمية v${pkg.version}.`))throw new Error('Arabic version copy mismatch');
 if(!render.includes('value: production')||!render.includes('plan: free'))throw new Error('Render production settings mismatch');
+if(html.includes(\"navigator.serviceWorker.register('/sw.js')\"))throw new Error('Service worker registration must stay disabled');
+if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
 
 console.log(`Release check passed: CV France v${pkg.version}, 8 sections, optional photo, ${scriptsOpen} scripts.`);
