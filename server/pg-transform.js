@@ -37,6 +37,10 @@ s = s.replace(
   '    "smtp",\n    "storage_writable"\n  ];',
   '    "smtp",\n    "database"\n  ];'
 );
+s = s.replace(
+  '    "email",\n    "storage_writable"\n  ];',
+  '    "email",\n    "database"\n  ];'
+);
 
 const adminStatus = s.indexOf('"/api/admin/status"');
 if (adminStatus !== -1) {
