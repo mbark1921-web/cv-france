@@ -23,6 +23,7 @@ requireOnce("input.id='cvPhotoInput'",'control cvPhotoInput');
 requireOnce("control.id='cvColorControl'",'control cvColorControl');
 requireOnce("option.value=value;select.appendChild(option)",'professional CV template options');
 requireOnce('PROFESSIONAL_CV_PRINT_FIT_V20_5_1','professional CV print fit');
+requireOnce('CV_EDIT_PERSISTENCE_V20_5_7','CV edit persistence');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -54,7 +55,9 @@ for(const text of [
   "document.documentElement.dir=lang==='ar'?'rtl':'ltr'",
   '@media(max-width:800px)',
   "navFeedback:'feedback'",
-  'overscroll-behavior-x:none'
+  'overscroll-behavior-x:none',
+  "localStorage.getItem(storageKey)",
+  "activeCvId=remembered"
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
@@ -62,6 +65,8 @@ const scriptsClose=(html.match(/<\/script>/g)||[]).length;
 if(scriptsOpen!==scriptsClose)throw new Error(`Unbalanced scripts: ${scriptsOpen}/${scriptsClose}`);
 
 if(!server.includes(`version: "${pkg.version}"`))throw new Error('Server version mismatch');
+if(!server.includes('EMAIL_READINESS_V20_5_7'))throw new Error('Generic email readiness patch missing');
+if(!server.includes('    "email",\n    "storage_writable"'))throw new Error('Public readiness does not require generic email');
 if(!html.includes(`v${pkg.version} Production`))throw new Error('Visible version mismatch');
 if(!html.includes(`version officielle v${pkg.version}.`))throw new Error('French version copy mismatch');
 if(!html.includes(`النسخة الرسمية v${pkg.version}.`))throw new Error('Arabic version copy mismatch');
@@ -69,4 +74,4 @@ if(!render.includes('value: production')||!render.includes('plan: free'))throw n
 if(html.includes("navigator.serviceWorker.register('/sw.js')"))throw new Error('Service worker registration must stay disabled');
 if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
 
-console.log(`Release check passed: CV France v${pkg.version}, 8 sections, optional photo, ${scriptsOpen} scripts.`);
+console.log(`Release check passed: CV France v${pkg.version}, 8 sections, persistent CV edit mode, optional photo, ${scriptsOpen} scripts.`);
