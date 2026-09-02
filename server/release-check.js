@@ -27,6 +27,7 @@ requireOnce('CV_EDIT_PERSISTENCE_V20_5_7','CV edit persistence');
 requireOnce('CV_SAVE_SCROLL_V20_5_8','CV save scroll');
 requireOnce('LETTER_LIST_STABILITY_V20_5_9','letter list stability');
 requireOnce('APPLICATION_REAL_UPDATE_V20_6_0','application real update UI');
+requireOnce('APPLICATION_LIST_STABILITY_V20_6_1','application list stability');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -65,7 +66,9 @@ for(const text of [
   "const generation=++loadGeneration",
   "const unique=[];const seen=new Set()",
   "method:editing?'PUT':'POST'",
-  "cvf_active_application_id"
+  "cvf_active_application_id",
+  "const generation=++appLoadGeneration",
+  "box.replaceChildren(fragment)"
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
@@ -84,4 +87,4 @@ if(!render.includes('value: production')||!render.includes('plan: free'))throw n
 if(html.includes("navigator.serviceWorker.register('/sw.js')"))throw new Error('Service worker registration must stay disabled');
 if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
 
-console.log(`Release check passed: CV France v${pkg.version}, real application updates, stable letters, persistent CV edit mode, ${scriptsOpen} scripts.`);
+console.log(`Release check passed: CV France v${pkg.version}, stable application list, real application updates, stable letters, ${scriptsOpen} scripts.`);
