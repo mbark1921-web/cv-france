@@ -25,6 +25,7 @@ requireOnce("option.value=value;select.appendChild(option)",'professional CV tem
 requireOnce('PROFESSIONAL_CV_PRINT_FIT_V20_5_1','professional CV print fit');
 requireOnce('CV_EDIT_PERSISTENCE_V20_5_7','CV edit persistence');
 requireOnce('CV_SAVE_SCROLL_V20_5_8','CV save scroll');
+requireOnce('LETTER_LIST_STABILITY_V20_5_9','letter list stability');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -59,7 +60,9 @@ for(const text of [
   'overscroll-behavior-x:none',
   "localStorage.getItem(storageKey)",
   "activeCvId=remembered",
-  "target.scrollIntoView({behavior:'smooth',block:'center'})"
+  "target.scrollIntoView({behavior:'smooth',block:'center'})",
+  "const generation=++loadGeneration",
+  "const unique=[];const seen=new Set()"
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
@@ -76,4 +79,4 @@ if(!render.includes('value: production')||!render.includes('plan: free'))throw n
 if(html.includes("navigator.serviceWorker.register('/sw.js')"))throw new Error('Service worker registration must stay disabled');
 if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
 
-console.log(`Release check passed: CV France v${pkg.version}, 8 sections, persistent CV edit mode, save navigation, optional photo, ${scriptsOpen} scripts.`);
+console.log(`Release check passed: CV France v${pkg.version}, stable letters, persistent CV edit mode, save navigation, optional photo, ${scriptsOpen} scripts.`);
