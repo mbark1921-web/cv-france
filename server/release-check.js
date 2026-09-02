@@ -26,6 +26,7 @@ requireOnce('PROFESSIONAL_CV_PRINT_FIT_V20_5_1','professional CV print fit');
 requireOnce('CV_EDIT_PERSISTENCE_V20_5_7','CV edit persistence');
 requireOnce('CV_SAVE_SCROLL_V20_5_8','CV save scroll');
 requireOnce('LETTER_LIST_STABILITY_V20_5_9','letter list stability');
+requireOnce('APPLICATION_REAL_UPDATE_V20_6_0','application real update UI');
 
 for(const marker of [
   'CV_FINAL_RENDERER_V20_2',
@@ -62,7 +63,9 @@ for(const text of [
   "activeCvId=remembered",
   "target.scrollIntoView({behavior:'smooth',block:'center'})",
   "const generation=++loadGeneration",
-  "const unique=[];const seen=new Set()"
+  "const unique=[];const seen=new Set()",
+  "method:editing?'PUT':'POST'",
+  "cvf_active_application_id"
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
@@ -71,6 +74,8 @@ if(scriptsOpen!==scriptsClose)throw new Error(`Unbalanced scripts: ${scriptsOpen
 
 if(!server.includes(`version: "${pkg.version}"`))throw new Error('Server version mismatch');
 if(!server.includes('EMAIL_READINESS_V20_5_7'))throw new Error('Generic email readiness patch missing');
+if(!server.includes('APPLICATION_REAL_UPDATE_V20_6_0'))throw new Error('Application PUT route missing');
+if(!server.includes('app.put("/api/applications/:id"'))throw new Error('Application update endpoint missing');
 if(!server.includes('    "email",\n    "storage_writable"'))throw new Error('Public readiness does not require generic email');
 if(!html.includes(`v${pkg.version} Production`))throw new Error('Visible version mismatch');
 if(!html.includes(`version officielle v${pkg.version}.`))throw new Error('French version copy mismatch');
@@ -79,4 +84,4 @@ if(!render.includes('value: production')||!render.includes('plan: free'))throw n
 if(html.includes("navigator.serviceWorker.register('/sw.js')"))throw new Error('Service worker registration must stay disabled');
 if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
 
-console.log(`Release check passed: CV France v${pkg.version}, stable letters, persistent CV edit mode, save navigation, optional photo, ${scriptsOpen} scripts.`);
+console.log(`Release check passed: CV France v${pkg.version}, real application updates, stable letters, persistent CV edit mode, ${scriptsOpen} scripts.`);
