@@ -76,7 +76,7 @@ services:
         sync: false
 
       - key: AI_MODE
-        value: mock
+        value: disabled
       - key: OPENAI_API_KEY
         sync: false
       - key: AI_DAILY_LIMIT
