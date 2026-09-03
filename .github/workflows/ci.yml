@@ -9,6 +9,8 @@ jobs:
         with:
           node-version: 24
       - run: npm install
+      - name: NPM audit diagnostic
+        run: npm audit --json || true
       - name: Syntax checks
         run: for f in server/*.js; do node --check "$f"; done
       - name: Patch public app twice
