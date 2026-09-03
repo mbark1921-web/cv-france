@@ -1,6 +1,6 @@
 {
   "name": "cv-france-v20",
-  "version": "20.6.10",
+  "version": "20.6.11",
   "private": true,
   "type": "module",
   "engines": {
@@ -31,5 +31,8 @@
     "pg": "^8.16.3",
     "stripe": "^22.4.0",
     "zod": "^3.24.2"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }
