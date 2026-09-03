@@ -16,20 +16,18 @@ if(!html.includes(marker)){
     if(!btn)return;
     const editing=!!getId();
     const ar=(document.documentElement.lang||'').toLowerCase().startsWith('ar')||document.documentElement.dir==='rtl';
-    btn.textContent=editing?(ar?'حفظ التعديلات':'Enregistrer les modifications'):(ar?'إضافة':'Ajouter');
+    const desired=editing?(ar?'حفظ التعديلات':'Enregistrer les modifications'):(ar?'إضافة':'Ajouter');
+    if((btn.textContent||'').trim()!==desired) btn.textContent=desired;
   };
-
   document.addEventListener('click',function(e){
     const target=e.target.closest('button');
     if(!target)return;
     const txt=(target.textContent||'').trim().toLowerCase();
-    if(txt==='modifier'||txt==='تعديل') setTimeout(setLabel,0);
-    if(txt.includes('nouvelle candidature')||txt.includes('طلب عمل جديد')) setTimeout(setLabel,0);
+    if(txt==='modifier'||txt==='تعديل'||txt.includes('nouvelle candidature')||txt.includes('طلب عمل جديد')){
+      setTimeout(setLabel,0);
+      setTimeout(setLabel,100);
+    }
   },true);
-
-  const observer=new MutationObserver(()=>setLabel());
-  const apps=document.querySelector('#apps');
-  if(apps)observer.observe(apps,{childList:true,subtree:true});
   setTimeout(setLabel,50);
   setTimeout(setLabel,300);
 })();
@@ -38,4 +36,4 @@ if(!html.includes(marker)){
   fs.writeFileSync(htmlPath,html,'utf8');
 }
 
-console.log('Updated candidature action label for create/edit modes.');
+console.log('Updated candidature action label without mutation observer loop.');
