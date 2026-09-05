@@ -17,7 +17,7 @@ import {
   cvDocumentSchema, coverLetterSchema, aiLetterSchema, contactSchema, feedbackSchema,
   inviteCreateSchema, feedbackAdminSchema, clientErrorSchema
 } from "./validation.js";
-import { createRawToken, hashToken, futureIso } from "./tokens.js";
+import { issueAuthToken, consumeAuthToken } from "./auth-tokens.js";
 import { sendMail } from "./mailer.js";
 import { improveProfile, generateCoverLetter } from "./ai.js";
 
@@ -377,9 +377,7 @@ app.get("/api/public/config", (req, res) => {
 /* ---------- AUTH ---------- */
 
 async function issueVerificationEmail(user) {
-  const raw = createRawToken();
-  const hash = hashToken(raw);
-  const expiresAt = futureIso(60 * 60 * 1000);
+  const { raw, hash, expiresAt } = issueAuthToken('emailVerification');
 
   db.prepare("DELETE FROM email_verification_tokens WHERE user_id=?").run(user.id);
   db.prepare(`
@@ -508,26 +506,16 @@ app.post("/api/auth/resend-verification", requireAuth, async (req, res) => {
   res.json({ message: "Nouvel e-mail de confirmation envoyé." });
 });
 
-app.post("/api/auth/verify-email", (req, res) => {
+app.post("/api/auth/verify-email", async (req, res, next) => {
   const input = parse(verifyEmailSchema, req.body, res);
   if (!input) return;
 
-  const hash = hashToken(input.token);
-  const row = db.prepare(`
-    SELECT * FROM email_verification_tokens
-    WHERE token_hash=? AND used_at IS NULL AND expires_at > ?
-  `).get(hash, new Date().toISOString());
-
-  if (!row) return res.status(400).json({ error: "Lien invalide ou expiré." });
-
-  const tx = db.transaction(() => {
-    db.prepare("UPDATE users SET email_verified=1 WHERE id=?").run(row.user_id);
-    db.prepare("UPDATE email_verification_tokens SET used_at=CURRENT_TIMESTAMP WHERE id=?")
-      .run(row.id);
-  });
-  tx();
-
-  res.json({ message: "Adresse e-mail confirmée." });
+  try {
+    const consumed = await consumeAuthToken(db, 'emailVerification', input.token,
+      userId => db.query("UPDATE users SET email_verified=true WHERE id=?", [userId]));
+    if (!consumed) return res.status(400).json({ error: "Lien invalide ou expiré." });
+    res.json({ message: "Adresse e-mail confirmée." });
+  } catch (err) { next(err); }
 });
 
 app.post("/api/auth/request-password-reset", async (req, res) => {
@@ -540,9 +528,7 @@ app.post("/api/auth/request-password-reset", async (req, res) => {
 
   if (!user) return res.json({ message: generic });
 
-  const raw = createRawToken();
-  const hash = hashToken(raw);
-  const expiresAt = futureIso(30 * 60 * 1000);
+  const { raw, hash, expiresAt } = issueAuthToken('passwordReset');
 
   db.prepare("DELETE FROM password_reset_tokens WHERE user_id=?").run(user.id);
   db.prepare(`
@@ -561,31 +547,19 @@ app.post("/api/auth/request-password-reset", async (req, res) => {
   res.json({ message: generic });
 });
 
-app.post("/api/auth/reset-password", async (req, res) => {
+app.post("/api/auth/reset-password", async (req, res, next) => {
   const input = parse(resetConfirmSchema, req.body, res);
   if (!input) return;
 
-  const hash = hashToken(input.token);
-  const row = db.prepare(`
-    SELECT * FROM password_reset_tokens
-    WHERE token_hash=? AND used_at IS NULL AND expires_at > ?
-  `).get(hash, new Date().toISOString());
-
-  if (!row) return res.status(400).json({ error: "Lien invalide ou expiré." });
-
-  const newHash = await bcrypt.hash(input.newPassword, 12);
-  const tx = db.transaction(() => {
-    db.prepare(`
-      UPDATE users
-      SET password_hash=?, token_version=token_version+1
-      WHERE id=?
-    `).run(newHash, row.user_id);
-    db.prepare("UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP WHERE id=?")
-      .run(row.id);
-  });
-  tx();
-
-  res.json({ message: "Mot de passe modifié. Reconnectez-vous." });
+  try {
+    const newHash = await bcrypt.hash(input.newPassword, 12);
+    const consumed = await consumeAuthToken(db, 'passwordReset', input.token,
+      userId => db.query(`
+        UPDATE users SET password_hash=?, token_version=token_version+1 WHERE id=?
+      `, [newHash, userId]));
+    if (!consumed) return res.status(400).json({ error: "Lien invalide ou expiré." });
+    res.json({ message: "Mot de passe modifié. Reconnectez-vous." });
+  } catch (err) { next(err); }
 });
 
 app.get("/api/me", requireAuth, (req, res) => {
