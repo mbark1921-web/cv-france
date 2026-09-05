@@ -12,6 +12,8 @@
     "start": "npm run patch:public && npm run build:pg && node server/index.pg.generated.js",
     "dev": "npm run patch:public && npm run build:pg && node --watch server/index.pg.generated.js",
     "backup": "node server/backup.js",
+    "test:ci": "node server/ci.js",
+    "test:browser-syntax": "node server/check-browser-syntax.js",
     "test:smoke": "node server/smoke-test.js",
     "test:interview": "node --test server/interview.test.js",
     "test:applications": "node --test server/application.browser.test.js",

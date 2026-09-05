@@ -64,3 +64,38 @@ See [the isolated recovery runbook](server/RECOVERY.md) for versioned schema,
 `npm run db:provision`, real PostgreSQL backup/restore, the restore drill, privileges,
 and deployment checks. These tools intentionally refuse production targets and
 never read the application's `DATABASE_URL` or `.env`.
+
+## Release test gate / GitHub Actions
+
+`npm run test:ci` is the shared local/CI release gate. It runs recursive backend
+syntax checks, two complete frontend build passes, the release assertions,
+generated backend syntax, and every inline JavaScript block in every public HTML
+page plus every standalone public JS/MJS/CJS file (including the service worker).
+It then runs all `server/**/*.test.js` suites and explicitly requires C1 Jobs/browser,
+C2 tokens, C3 errors, C4 TLS, C5 recovery, Interview and the syntax-gate regressions.
+The C5 suite also runs the existing smoke test against its restored database.
+
+Prerequisites: Node 24, `npm ci --include=dev`, Playwright Chromium
+(`npx --no-install playwright install --with-deps chromium` on Linux), OpenSSL and
+native PostgreSQL server/client tools. Set `PG_BIN` to their directory if needed
+(e.g. `/usr/lib/postgresql/16/bin` on CI). Windows can set `OPENSSL_BIN` and
+`PLAYWRIGHT_EXECUTABLE_PATH` to installed executables.
+
+The gate builds only temporary copies, discards inherited service/database
+configuration, starts its own loopback PostgreSQL cluster for C2, and lets C5
+create a separate disposable cluster. No production secrets, URLs, or services
+are used; missing prerequisites or failed checks stop the gate. Temporary databases,
+certificates and archives are not uploaded as CI artifacts. The generated build
+and application checkout are not changed by the local gate.
+
+`.github/workflows/ci.yml` runs the same command for pushes, pull requests, merge
+queues and manual dispatch, on Ubuntu 24.04 / Node 24 / PostgreSQL 16. It installs
+locked dependencies and matching Playwright Chromium, uses read-only repository
+permissions, has a 20-minute timeout, and cancels superseded runs. The old PostgreSQL
+branch-only syntax workflow is superseded by this gate.
+
+After the workflow is pushed and passes on GitHub, require the **Release gate**
+status check in the main-branch protection/ruleset (replace any old `build-check`
+requirement). Workflow files alone do not enforce merge blocking. Repository rules
+and deployment/auto-deploy settings are not changed by this patch. A successful
+local run does not substitute for the first hosted Ubuntu run.

@@ -45,6 +45,11 @@ for(const marker of [
 ])requireOnce(marker,marker);
 
 for(const text of [
+  '</script>\n<script>/* REGISTRATION_STATE_UI_V20_2_4 */',
+  "box.dir=lang==='ar'?'rtl':'ltr'",
+  'body *{visibility:hidden!important}',
+  '#cvPreview,#cvPreview *{visibility:visible!important}',
+  "#cvPreview[dir='rtl'] h1",
   'Accès rapide','ابدأ بسرعة','Créer un nouveau CV','إنشاء سيرة ذاتية جديدة',
   'Mon compte','حسابي','Aidez-nous à améliorer','ساعدنا على تحسين',
   'Photo personnelle (facultative)','الصورة الشخصية (اختيارية)',

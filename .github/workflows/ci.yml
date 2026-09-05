@@ -1,38 +1,46 @@
 name: CV France CI
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Release gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      APP_STAGE: test
+      PG_BIN: /usr/lib/postgresql/16/bin
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
-      - run: npm ci
-      - name: Syntax checks
-        run: for f in server/*.js; do node --check "$f"; done
-      - name: Patch public app twice
-        run: npm run patch:public && npm run patch:public
-      - name: Verify final CV renderer and styles are injected once
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies including test tools
+        run: npm ci --include=dev
+      - name: Install isolated PostgreSQL and TLS test tools
         run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const r=(s.match(/CV_FINAL_RENDERER_V20_2/g)||[]).length;const c=(s.match(/CV_FINAL_POLISH_STYLES_V20_2/g)||[]).length;if(r!==1||c!==1)throw new Error('renderer='+r+', styles='+c);"
-      - name: Verify optional CV photo is injected once
-        run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const m=(s.match(/OPTIONAL_CV_PHOTO_V20_4_1_SCRIPT/g)||[]).length;const i=(s.match(/input\.id='cvPhotoInput'/g)||[]).length;if(m!==1||i!==1)throw new Error('photo marker='+m+', input='+i);if(!s.includes('body.data.photo=cvPhotoData'))throw new Error('photo save missing');if(!s.includes(\"cv?.data?.photo||''\"))throw new Error('photo load missing');if(!s.includes('cv-photo-preview'))throw new Error('photo preview missing');"
-      - name: Verify script tags are balanced and registration UI is separate
-        run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');const o=(s.match(/<script(?:\s|>)/g)||[]).length;const c=(s.match(/<\/script>/g)||[]).length;if(o!==c)throw new Error('script tags unbalanced: open='+o+', close='+c);if(!s.includes('</script>\n<script>/* REGISTRATION_STATE_UI_V20_2_4 */'))throw new Error('registration script not separated from main script');"
-      - name: Verify RTL preview and PDF preview-only print
-        run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('public/index.html','utf8');if(!s.includes(\"box.dir=lang==='ar'?'rtl':'ltr'\"))throw new Error('RTL preview direction missing');if(!s.includes('body *{visibility:hidden!important}'))throw new Error('global print hiding missing');if(!s.includes('#cvPreview,#cvPreview *{visibility:visible!important}'))throw new Error('preview print visibility missing');if(!s.includes(\"#cvPreview[dir='rtl'] h1\"))throw new Error('RTL print alignment missing');"
-      - name: Verify production version consistency
-        run: |
-          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const server=fs.readFileSync('server/index.js','utf8');const html=fs.readFileSync('public/index.html','utf8');const render=fs.readFileSync('render.yaml','utf8');if(!server.includes('version: \"'+pkg.version+'\"'))throw new Error('health version mismatch');if(!html.includes('v'+pkg.version+' Production'))throw new Error('visible production version mismatch');if(!html.includes('version officielle v'+pkg.version+'.'))throw new Error('French production copy mismatch');if(!html.includes('النسخة الرسمية v'+pkg.version+'.'))throw new Error('Arabic production copy mismatch');if(!render.includes('value: production'))throw new Error('production stage missing');if(!render.includes('plan: free'))throw new Error('free hosting plan changed');"
-      - name: Generate PostgreSQL server
-        run: npm run build:pg
-      - name: Check generated PostgreSQL server
-        run: node --check server/index.pg.generated.js
-      - name: Verify complete stable release
-        run: node server/release-check.js
-      - name: Verify PostgreSQL package
-        run: npm ls pg
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 openssl
+          # Debian's native binaries use this socket directory, including isolated clusters.
+          sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0755 /var/run/postgresql
+      - name: Install locked Playwright Chromium and OS dependencies
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run complete release gate
+        run: npm run test:ci
+      - name: Check whitespace
+        run: git diff --check
