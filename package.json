@@ -14,6 +14,7 @@
     "backup": "node server/backup.js",
     "test:smoke": "node server/smoke-test.js",
     "test:interview": "node --test server/interview.test.js",
+    "test:applications": "node --test server/application.browser.test.js",
     "doctor": "node server/doctor.js",
     "restore": "node server/restore-backup.js",
     "platform-check": "node server/platform-check.js",
@@ -35,5 +36,8 @@
   },
   "overrides": {
     "qs": "^6.16.0"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }

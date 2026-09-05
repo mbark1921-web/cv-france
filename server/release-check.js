@@ -71,7 +71,8 @@ for(const text of [
   "const generation=++appLoadGeneration",
   "box.replaceChildren(fragment)",
   "saveButton.setAttribute('onclick','window.saveApplicationFinal()')",
-  "const editingId=liveId||storedId"
+  "const editingId=creatingNew?null:(liveId||storedId)",
+  "globalThis.clearApplicationForm=window.clearApplicationForm"
 ])requireText(text,`release requirement`);
 
 const scriptsOpen=(html.match(/<script(?:\s|>)/g)||[]).length;
