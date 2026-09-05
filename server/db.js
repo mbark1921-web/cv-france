@@ -1,4 +1,5 @@
 import pg from "pg";
+import { databaseConnectionOptions } from "./database-tls.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 const { Pool } = pg;
@@ -8,8 +9,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ...databaseConnectionOptions(),
   max: Number(process.env.DB_POOL_MAX || 5),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000

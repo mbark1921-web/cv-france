@@ -15,6 +15,7 @@
     "test:smoke": "node server/smoke-test.js",
     "test:interview": "node --test server/interview.test.js",
     "test:applications": "node --test server/application.browser.test.js",
+    "test:tls": "node --test server/database-tls.test.js",
     "test:backend": "node --test server/http-errors.test.js",
     "test:tokens": "node --test server/auth-tokens.test.js",
     "doctor": "node server/doctor.js",
