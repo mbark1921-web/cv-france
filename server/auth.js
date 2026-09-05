@@ -6,8 +6,14 @@ export async function requireAuth(req, res, next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
+  let payload;
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+
+  try {
     const user = await db.prepare(`
       SELECT id,email,plan,token_version,email_verified,
              stripe_customer_id,stripe_subscription_id,subscription_status
@@ -20,8 +26,8 @@ export async function requireAuth(req, res, next) {
 
     req.user = user;
     next();
-  } catch {
-    return res.status(401).json({ error: "Invalid token" });
+  } catch (err) {
+    next(err);
   }
 }
 

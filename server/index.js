@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { installAsyncRoutes, validateIdentifier, jsonErrorHandler, ApiDependencyError } from "./http-errors.js";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -22,6 +23,8 @@ import { sendMail } from "./mailer.js";
 import { improveProfile, generateCoverLetter } from "./ai.js";
 
 const app = express();
+installAsyncRoutes(app);
+app.param("id", validateIdentifier);
 const PORT = process.env.PORT || 3000;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`;
 
@@ -130,8 +133,7 @@ app.post(
 
       res.json({ received: true });
     } catch (err) {
-      console.error("Stripe webhook handling error:", err);
-      res.status(500).send("Webhook handler error");
+      throw err;
     }
   }
 );
@@ -467,8 +469,7 @@ app.post("/api/auth/register", async (req, res) => {
       message: "Compte créé. Vérifiez votre adresse e-mail."
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Impossible de créer le compte." });
+    throw err;
   }
 });
 
@@ -991,10 +992,7 @@ app.post("/api/support/contact", async (req, res) => {
       message: "Votre message a été envoyé au support."
     });
   } catch (err) {
-    console.error("Support email error:", err);
-    res.status(502).json({
-      error: "Impossible d'envoyer le message pour le moment."
-    });
+    throw new ApiDependencyError("support", err);
   }
 });
 
@@ -1380,7 +1378,8 @@ app.post("/api/billing/refresh-status", requireAuth, requireVerified, async (req
     try {
       sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
     } catch (err) {
-      console.error("Subscription refresh by id failed:", err.message);
+      // A missing subscription can still be resolved through the customer lookup.
+      if (err.statusCode !== 404) throw err;
     }
   }
 
@@ -1504,8 +1503,7 @@ app.post(
         }
       });
     } catch (err) {
-      console.error("AI error:", err);
-      res.status(502).json({ error: "Service IA indisponible." });
+      throw new ApiDependencyError("ai", err);
     }
   }
 );
@@ -1537,8 +1535,7 @@ app.post(
         }
       });
     } catch (err) {
-      console.error("AI letter error:", err);
-      res.status(502).json({ error: "Service IA indisponible." });
+      throw new ApiDependencyError("ai", err);
     }
   }
 );
@@ -1616,6 +1613,8 @@ app.get("/404", (req, res) => {
 app.get("*", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));
 });
+
+app.use(jsonErrorHandler);
 
 const httpServer = app.listen(PORT, () => {
   console.log(`CV France v20 running on port ${PORT}`);
