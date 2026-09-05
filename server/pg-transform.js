@@ -79,7 +79,7 @@ if (backupStart !== -1 && backupEnd !== -1) {
   requireAdmin,
   async (req, res) => {
     res.status(409).json({
-      error: "La base utilise PostgreSQL/Supabase. La sauvegarde SQLite locale n'est plus utilisée.",
+      error: "Utilisez les outils PostgreSQL CLI sécurisés (npm run backup) ou les sauvegardes du fournisseur.",
       managed_database: true
     });
   }

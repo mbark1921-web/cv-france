@@ -9,3 +9,7 @@ backups/
 *.sqlite
 *.sqlite3
 .DS_Store
+
+# PostgreSQL recovery archives and their manifests
+*.dump
+*.dump.json

@@ -57,3 +57,10 @@ are checked in. This adds no npm dependencies.
 
 References: [Supabase TLS guidance](https://supabase.com/docs/guides/platform/ssl-enforcement)
 and [node-postgres SSL configuration](https://node-postgres.com/features/ssl).
+
+## PostgreSQL provisioning and recovery (C5)
+
+See [the isolated recovery runbook](server/RECOVERY.md) for versioned schema,
+`npm run db:provision`, real PostgreSQL backup/restore, the restore drill, privileges,
+and deployment checks. These tools intentionally refuse production targets and
+never read the application's `DATABASE_URL` or `.env`.
