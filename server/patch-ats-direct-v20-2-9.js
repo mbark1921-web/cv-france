@@ -5,8 +5,14 @@ const file = path.resolve('public/index.html');
 let html = fs.readFileSync(file, 'utf8');
 
 const start = html.indexOf('function analyzeAts(){');
-const end = html.indexOf('async function sendFeedback()', start);
-if (start === -1 || end === -1) throw new Error('ATS function not found');
+// Interview functions can sit between ATS and feedback. Preserve them instead
+// of relying on a later patch to recreate code deleted by this patch.
+const end = Math.min(...[
+  'function openInterviewPanel(){',
+  'function generateInterview(){',
+  'async function sendFeedback()'
+].map(anchor => html.indexOf(anchor, start)).filter(index => index > start));
+if (start === -1 || !Number.isFinite(end)) throw new Error('ATS function not found');
 
 const replacement = String.raw`function analyzeAts(){
   const id=String(document.getElementById('atsCv')?.value||'');

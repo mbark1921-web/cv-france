@@ -13,6 +13,7 @@
     "dev": "npm run patch:public && npm run build:pg && node --watch server/index.pg.generated.js",
     "backup": "node server/backup.js",
     "test:smoke": "node server/smoke-test.js",
+    "test:interview": "node --test server/interview.test.js",
     "doctor": "node server/doctor.js",
     "restore": "node server/restore-backup.js",
     "platform-check": "node server/platform-check.js",
