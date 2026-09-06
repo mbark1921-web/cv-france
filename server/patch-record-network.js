@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const file=path.resolve('public/index.html');
+let html=fs.readFileSync(file,'utf8');
+const source=fs.readFileSync(new URL('./record-network.browser.js',import.meta.url),'utf8');
+const block='<script>/* RECORD_NETWORK_V1 */\n'+source+'\n</script>';
+html=html.replace(/<script>\/\* RECORD_NETWORK_V1 \*\/[\s\S]*?<\/script>\s*/g,'');
+if(!html.includes('SESSION_CLEANUP_V1')||!html.includes('APPLICATION_UPDATE_RUNTIME_V20_6_2'))throw new Error('Record network handling must follow session and Jobs identity patches.');
+html=html.replace('</body></html>',block+'</body></html>');
+if(!html.includes(block))throw new Error('Record network build anchor missing');
+fs.writeFileSync(file,html);
+console.log('Installed localized Letters and Jobs write failure handling.');
