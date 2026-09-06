@@ -85,15 +85,16 @@ const scriptsClose=(html.match(/<\/script>/g)||[]).length;
 if(scriptsOpen!==scriptsClose)throw new Error(`Unbalanced scripts: ${scriptsOpen}/${scriptsClose}`);
 
 if(!server.includes(`version: "${pkg.version}"`))throw new Error('Server version mismatch');
-if(!server.includes('EMAIL_READINESS_V20_5_7'))throw new Error('Generic email readiness patch missing');
+if(!server.includes('PRODUCTION_READINESS_V1'))throw new Error('Production readiness missing');
 if(!server.includes('APPLICATION_REAL_UPDATE_V20_6_0'))throw new Error('Application PUT route missing');
 if(!server.includes('app.put("/api/applications/:id"'))throw new Error('Application update endpoint missing');
-if(!server.includes('    "email",\n    "storage_writable"'))throw new Error('Public readiness does not require generic email');
 if(!html.includes(`v${pkg.version} Production`))throw new Error('Visible version mismatch');
 if(!html.includes(`version officielle v${pkg.version}.`))throw new Error('French version copy mismatch');
 if(!html.includes(`النسخة الرسمية v${pkg.version}.`))throw new Error('Arabic version copy mismatch');
 if(!render.includes('value: production')||!render.includes('plan: free'))throw new Error('Render production settings mismatch');
 if(html.includes("navigator.serviceWorker.register('/sw.js')"))throw new Error('Service worker registration must stay disabled');
 if(serviceWorker.includes('client.navigate('))throw new Error('Service worker must not reload client pages');
+
+if(!render.includes('healthCheckPath: /api/startup'))throw new Error('Render startup admission probe missing');
 
 console.log(`Release check passed: CV France v${pkg.version}, hardened application runtime updates, stable application list, stable letters, ${scriptsOpen} scripts.`);

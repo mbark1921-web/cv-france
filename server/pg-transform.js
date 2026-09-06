@@ -29,19 +29,6 @@ s = s.replaceAll("CASE WHEN is_active=true THEN 0 ELSE 1 END", "NOT is_active");
 s = s.replaceAll("AND (expires_at IS NULL OR expires_at='' OR expires_at > CURRENT_TIMESTAMP)", "AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)");
 s = s.replaceAll("existingCount === 0 ? 1 : 0", "Number(existingCount) === 0");
 
-s = s.replace(
-  'app.get("/api/readiness", async (req, res) => {\n  const checks = {',
-  'app.get("/api/readiness", async (req, res) => {\n  let database = false;\n  try { database = await db.ping(); } catch {}\n\n  const checks = {\n    database,'
-);
-s = s.replace(
-  '    "smtp",\n    "storage_writable"\n  ];',
-  '    "smtp",\n    "database"\n  ];'
-);
-s = s.replace(
-  '    "email",\n    "storage_writable"\n  ];',
-  '    "email",\n    "database"\n  ];'
-);
-
 const adminStatus = s.indexOf('"/api/admin/status"');
 if (adminStatus !== -1) {
   const start = s.indexOf("    const counts = {", adminStatus);

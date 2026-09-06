@@ -1,7 +1,8 @@
 import "dotenv/config";
+import { createCorsMiddleware } from "./production-config.js";
+import { createReadinessProbe, createStartupProbe } from "./readiness.js";
 import express from "express";
 import { installAsyncRoutes, validateIdentifier, jsonErrorHandler, ApiDependencyError } from "./http-errors.js";
-import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
@@ -40,17 +41,7 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGIN || "")
-  .split(",").map(x => x.trim()).filter(Boolean);
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error("Origin not allowed"));
-  }
-}));
+app.use(createCorsMiddleware(process.env));
 
 /* Stripe requires the raw request body to verify the webhook signature. */
 app.post(
@@ -145,6 +136,7 @@ app.use((req, res, next) => {
   const exempt =
     req.path === "/api/health" ||
     req.path === "/api/readiness" ||
+    req.path === "/api/startup" ||
     req.path.startsWith("/api/admin/");
 
   if (maintenance && req.path.startsWith("/api/") && !exempt) {
@@ -280,84 +272,20 @@ function findValidInvite(code) {
 
 /* ---------- HEALTH ---------- */
 
+/* PRODUCTION_READINESS_V1 */
+const readiness = createReadinessProbe({ ping: () => db.ping() });
+const startup = createStartupProbe(readiness);
 app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    version: "20.0.0",
-    stripe_configured: Boolean(
-      process.env.STRIPE_SECRET_KEY &&
-      process.env.STRIPE_WEBHOOK_SECRET &&
-      process.env.STRIPE_PREMIUM_PRICE_ID
-    ),
-    email_mode: process.env.EMAIL_MODE || "console",
-    ai_mode: process.env.AI_MODE || "mock",
-    openai_model: process.env.AI_MODE === "openai"
-      ? (process.env.OPENAI_MODEL || "gpt-5.6-luna")
-      : null
-  });
+  res.set("Cache-Control", "no-store").json({ ok: true, version: "20.0.0" });
 });
-
-app.get("/api/readiness", (req, res) => {
-  const checks = {
-    domain: Boolean(
-      process.env.DOMAIN &&
-      !String(process.env.DOMAIN).includes("example.com")
-    ),
-    https_base_url: Boolean(
-      process.env.PUBLIC_BASE_URL &&
-      String(process.env.PUBLIC_BASE_URL).startsWith("https://") &&
-      !String(process.env.PUBLIC_BASE_URL).includes("example.com")
-    ),
-    jwt_secret: Boolean(
-      process.env.JWT_SECRET &&
-      String(process.env.JWT_SECRET).length >= 32
-    ),
-    support_email: Boolean(
-      process.env.SUPPORT_EMAIL &&
-      !String(process.env.SUPPORT_EMAIL).includes("example.com")
-    ),
-    admin_email: Boolean(
-      process.env.ADMIN_EMAIL &&
-      !String(process.env.ADMIN_EMAIL).includes("example.com")
-    ),
-    smtp: (process.env.EMAIL_MODE || "console") === "smtp"
-      ? Boolean(
-          process.env.SMTP_HOST &&
-          process.env.SMTP_USER &&
-          process.env.SMTP_PASSWORD
-        )
-      : false,
-    stripe: Boolean(
-      process.env.STRIPE_SECRET_KEY &&
-      process.env.STRIPE_WEBHOOK_SECRET &&
-      process.env.STRIPE_PREMIUM_PRICE_ID
-    ),
-    ai: (process.env.AI_MODE || "mock") === "openai"
-      ? Boolean(process.env.OPENAI_API_KEY)
-      : (process.env.AI_MODE || "mock") !== "mock",
-    storage_writable: storageWritable()
-  };
-
-  const requiredForPublic = [
-    "domain",
-    "https_base_url",
-    "jwt_secret",
-    "support_email",
-    "admin_email",
-    "smtp",
-    "storage_writable"
-  ];
-
-  const publicReady = requiredForPublic.every(k => checks[k]);
-
-  res.status(publicReady ? 200 : 503).json({
-    ok: publicReady,
-    stage: process.env.APP_STAGE || "staging",
-    maintenance: (process.env.MAINTENANCE_MODE || "off") === "on",
-    registration_mode: registrationMode(),
-    feedback_enabled: String(process.env.FEEDBACK_ENABLED || "true") === "true",
-    checks
-  });
+app.get("/api/readiness", async (req, res) => {
+  const result = await readiness();
+  res.set("Cache-Control", "no-store").status(result.ok ? 200 : 503).json(result);
+});
+// Render has a single probe for admission and restarts. After admission, use liveness.
+app.get("/api/startup", async (req, res) => {
+  const result = await startup();
+  res.set("Cache-Control", "no-store").status(result.ok ? 200 : 503).json(result);
 });
 
 app.get("/api/public/config", (req, res) => {

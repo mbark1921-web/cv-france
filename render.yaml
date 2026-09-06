@@ -4,7 +4,9 @@ services:
     runtime: docker
     plan: free
     autoDeploy: true
-    healthCheckPath: /api/health
+    # Full readiness until first success per process, then liveness to avoid dependency restart loops.
+    # Monitor /api/readiness separately for ongoing dependency failures.
+    healthCheckPath: /api/startup
     envVars:
       - key: NODE_ENV
         value: production

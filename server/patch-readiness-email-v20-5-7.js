@@ -3,6 +3,11 @@ import path from 'path';
 
 const file=path.resolve('server/index.js');
 let source=fs.readFileSync(file,'utf8');
+if (source.includes('PRODUCTION_READINESS_V1')) {
+  if (!source.includes('createReadinessProbe')) throw new Error('Readiness probe missing');
+  console.log('Production readiness includes Brevo and SMTP configuration checks.');
+  process.exit(0);
+}
 const marker='EMAIL_READINESS_V20_5_7';
 
 if(!source.includes(marker)){
