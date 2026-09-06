@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const file=path.resolve('public/index.html');
+let html=fs.readFileSync(file,'utf8');
+const source=fs.readFileSync(new URL('./account-controls.browser.js',import.meta.url),'utf8');
+const block='<script>/* ACCOUNT_CONTROLS_V1 */\n'+source+'\n</script>';
+html=html.replace(/<script>\/\* ACCOUNT_CONTROLS_V1 \*\/[\s\S]*?<\/script>\s*/g,'');
+if(!html.includes('SESSION_CLEANUP_V1'))throw new Error('Account controls require session cleanup.');
+html=html.replace('</body></html>',block+'</body></html>');
+if(!html.includes(block))throw new Error('Account controls build anchor missing');
+fs.writeFileSync(file,html);
+console.log('Installed accessible bilingual account controls.');

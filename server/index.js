@@ -1570,7 +1570,7 @@ app.post("/api/account/logout-all", requireAuth, (req, res) => {
 
 app.get("/api/account/export", requireAuth, (req, res) => {
   const user = db.prepare(`
-    SELECT id,email,plan,email_verified,subscription_status,created_at
+    SELECT id,email,plan,email_verified,subscription_status,stripe_customer_id,stripe_subscription_id,created_at
     FROM users WHERE id=?
   `).get(req.user.id);
 
@@ -1579,8 +1579,20 @@ app.get("/api/account/export", requireAuth, (req, res) => {
   const cvs = db.prepare("SELECT * FROM cv_documents WHERE user_id=?").all(req.user.id);
   const letters = db.prepare("SELECT * FROM cover_letters WHERE user_id=?").all(req.user.id);
   const aiUsage = db.prepare("SELECT * FROM ai_usage WHERE user_id=? ORDER BY usage_date DESC").all(req.user.id);
+  const feedback = db.prepare("SELECT id,rating,category,message,page,status,created_at,updated_at FROM feedback WHERE user_id=? ORDER BY id").all(req.user.id);
+  const diagnostics = db.prepare("SELECT id,message,source,line,column_no,stack,page,user_agent,created_at FROM client_errors WHERE user_id=? ORDER BY id").all(req.user.id);
+  const inviteUses = db.prepare("SELECT id,invite_id,used_at FROM beta_invite_uses WHERE user_id=? ORDER BY id").all(req.user.id);
 
-  res.json({ exported_at: new Date().toISOString(), user, profiles, cvs, letters, applications, ai_usage: aiUsage });
+  res.set("Cache-Control", "no-store");
+  res.json({
+    exported_at: new Date().toISOString(), user, profiles, cvs, letters, applications,
+    ai_usage: aiUsage, feedback, client_errors: diagnostics, beta_invite_uses: inviteUses,
+    excluded: [
+      "password_hashes_and_authentication_tokens", "internal_audit_logs_and_staff_notes",
+      "administrative_invitation_records_and_codes", "unsaved_forms_and_temporary_ats_interview_results",
+      "unlinked_feedback_and_diagnostics", "provider_records_server_logs_and_backups"
+    ]
+  });
 });
 
 app.delete("/api/account", requireAuth, async (req, res) => {
