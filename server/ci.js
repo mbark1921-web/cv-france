@@ -28,7 +28,7 @@ try {
   for(const tool of ['initdb','postgres','pg_ctl','pg_dump','pg_restore'])run(binary(tool),['--version'],scratch);
   run(env.OPENSSL_BIN || 'openssl',['version'],scratch);
   fs.mkdirSync(fixture);
-  for(const name of ['server','public','package.json','render.yaml'])fs.cpSync(path.join(root,name),path.join(fixture,name),{recursive:true});
+  for(const name of ['server','public','package.json','render.yaml','Dockerfile','.dockerignore'])fs.cpSync(path.join(root,name),path.join(fixture,name),{recursive:true});
   fs.symlinkSync(path.join(root,'node_modules'),path.join(fixture,'node_modules'),'junction');
   // Build anchors are LF-based. Normalize only disposable copies, never the checkout.
   for(const dir of ['server','public'])for(const file of filesUnder(path.join(fixture,dir))) {
@@ -65,10 +65,10 @@ try {
   if(!ready)throw new Error('Isolated PostgreSQL readiness timeout.');
   env.TEST_DATABASE_URL=`postgresql://postgres@127.0.0.1:${port}/postgres?sslmode=disable`;
   const tests=filesUnder(path.join(fixture,'server')).filter(f=>f.endsWith('.test.js'));
-  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax','session.browser','record-network.browser','account.backend','account.browser','production-readiness','accessibility-ux.browser']) {
+  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax','session.browser','record-network.browser','account.backend','account.browser','production-readiness','accessibility-ux.browser','container-runtime']) {
     if(!tests.some(f=>path.basename(f)===required+'.test.js'))throw new Error('Missing required regression suite: '+required);
   }
-  console.log(`Release gate: ${tests.length} regression suites (C1–C5, Interview, accessibility/UX and gate checks)`);
+  console.log(`Release gate: ${tests.length} regression suites (C1–C5, Interview, accessibility/UX, container runtime and gate checks)`);
   run(process.execPath,['--unhandled-rejections=strict','--test','--test-concurrency=1',...tests],fixture,true);
   console.log('RELEASE GATE PASSED');
 } finally {
