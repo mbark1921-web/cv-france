@@ -65,7 +65,7 @@ try {
   if(!ready)throw new Error('Isolated PostgreSQL readiness timeout.');
   env.TEST_DATABASE_URL=`postgresql://postgres@127.0.0.1:${port}/postgres?sslmode=disable`;
   const tests=filesUnder(path.join(fixture,'server')).filter(f=>f.endsWith('.test.js'));
-  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax']) {
+  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax','session.browser']) {
     if(!tests.some(f=>path.basename(f)===required+'.test.js'))throw new Error('Missing required regression suite: '+required);
   }
   console.log(`Release gate: ${tests.length} regression suites (C1–C5, Interview and gate checks)`);
