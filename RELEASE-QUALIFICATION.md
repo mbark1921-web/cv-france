@@ -8,7 +8,7 @@ Après `git fetch origin`, HEAD, origin/main et la référence GitHub main corre
 à `fff4d59f28fe4427b23e4629b96dfa56bc4caaed`. Le workflow de référence
 [34048013736](https://github.com/mbark1921-web/cv-france/actions/runs/34048013736)
 est terminé avec succès. Les modifications locales préexistantes de documentation
-et de qualification des builds ont été conservées. Aucun secret réel n'a été lu,
+et de qualification des builds ont été conservées. Aucun secret réel n'a été
 remplacé ou ajouté au dépôt, et aucune donnée de production n'a été modifiée.
 
 Architecture examinée : Express et JWT applicatifs, adaptateur PostgreSQL avec
@@ -41,8 +41,11 @@ Chromium Playwright installé, avec des bases jetables et sans environnement de
 production hérité. Résultat final sur le code du commit
 `7a5f9fd362a68718a966671e0001c78b60cea3d3` : **RELEASE GATE PASSED**,
 181 tests réussis, zéro échec, zéro test ignoré, durée des suites 466,2 secondes.
-Environnement : Node 24.19.0, PostgreSQL 16.15, OpenSSL 3.5.7. Le commit suivant
-ajoute uniquement ce rapport et ne modifie pas le code qualifié.
+Environnement : Node 24.19.0, PostgreSQL 16.15, OpenSSL 3.5.7. Les commits de
+rapport ultérieurs ne modifient pas le code qualifié.
+
+Le [Release gate GitHub 34112803285](https://github.com/mbark1921-web/cv-france/actions/runs/34112803285)
+est terminé avec succès sur `912f3fc67d0af0488b7040de5fa1695d8a24a4a3`.
 
 Premier passage complet : 181 tests, 170 réussis, 11 échoués, aucun ignoré.
 Dix échecs proviennent du même hook de démarrage du serveur des comptes dépassant
@@ -56,6 +59,7 @@ présenter le premier passage comme réussi.
 - `abeab9eee1c8713d05409c49722d5ee6ae7dd234` — documentation 20.7.0.
 - `acd675a1f12a0a88d96fec2d005f2c696eb48924` — qualification des builds et idempotence.
 - `7a5f9fd362a68718a966671e0001c78b60cea3d3` — courriels et tests de non-régression.
+- `912f3fc67d0af0488b7040de5fa1695d8a24a4a3` — rapport initial, poussé après la qualification locale verte.
 
 Fichiers : `.env.example`, `.env.render.example`, `README.md`, `package.json`,
 `server/build-check.js`, `server/ci.js`, `server/mailer.js`, `server/mailer.test.js`,
@@ -66,13 +70,37 @@ Fichiers : `.env.example`, `.env.render.example`, `README.md`, `package.json`,
 
 Les sondes HTTPS GET `/`, `/api/health`, `/api/readiness` et `/api/startup` sur
 `https://cv-france-staging.onrender.com` ont toutes expiré après 60 secondes.
-Cela ne permet pas de confirmer la cause historique PostgreSQL `28P01` ni le SHA
-réellement déployé. Le tableau de bord Render affiche sa page de connexion.
+Une nouvelle série après la poussée a également expiré à 45 secondes.
+L'accès Render a ensuite été disponible. Le déploiement
+`dep-daf99th5efls73aivc6g` utilise `912f3fc67d0af0488b7040de5fa1695d8a24a4a3` :
+les logs confirment le build et le lancement sur le port 3000, mais Render attend
+encore la réussite de `/api/startup`. Le dernier commit marqué « Live » par Render
+est `c1c7a227ca20c2befa3306062a8bc0b42b378fac` ; les déploiements de `fff4d59`
+étaient en échec. La recherche `28P01` dans les logs de la dernière heure n'a pas
+de résultat : la cause historique n'est pas confirmée pour le nouveau déploiement.
 
-L'action externe immédiate est de se connecter à Render dans l'onglet ouvert.
-Il faudra ensuite lire le déploiement et les logs, vérifier uniquement les noms
-de variables et les parties non secrètes du point de connexion, et demander à
-l'opérateur toute saisie ou correction d'un identifiant réel nécessaire.
+Valeurs non secrètes vérifiées : `NODE_ENV=production`, `APP_STAGE=production`,
+`EMAIL_MODE=brevo`, `AI_MODE=disabled`, `MAINTENANCE_MODE=off`, `REGISTRATION_MODE=open`,
+`PORT=3000`, `DB_POOL_MAX=5`. DOMAIN, PUBLIC_BASE_URL et ALLOWED_ORIGIN correspondent
+au domaine Render existant. Le chemin CA pointe sur le fichier secret monté.
+Les adresses administrateur, support et expéditeur sont présentes et de format valide.
+
+DATABASE_URL se parse correctement : pooler Supabase de région eu-west-2, mode
+session sur 5432, base postgres, utilisateur de forme `postgres.<référence-projet>`,
+mot de passe présent, sans placeholder apparent ni pourcentage mal encodé. Aucune
+option TLS dans l'URL ; le code impose la vérification avec la CA configurée.
+Ces contrôles ne prouvent ni la validité du mot de passe ni la réussite du handshake.
+
+Le shell Render est indisponible sur le plan gratuit. Le projet Supabase associé
+demande une connexion. **Action externe immédiate : se connecter à Supabase dans
+l'onglet ouvert**, pour permettre la lecture des erreurs PostgreSQL, des droits/RLS
+et de l'état des sauvegardes. Aucun changement d'offre n'a été effectué.
+
+Incident de manipulation : l'affichage multiligne du champ Brevo a fait apparaître
+la clé dans une sortie d'outil de cette session malgré le masquage prévu. Elle a
+été immédiatement remasquée, sans modification ni copie dans le dépôt. Sa présence
+est confirmée ; le premier contrôle « absent » était erroné. Une rotation par
+l'opérateur est recommandée ; aucun remplacement de secret n'est autorisé ou réalisé.
 
 Restent non certifiés : livraison Brevo réelle, persistance après redémarrage,
 configuration et droits/RLS Supabase en ligne, sauvegardes externes durables et
