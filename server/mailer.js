@@ -7,6 +7,9 @@ function getTransporter() {
   const port = Number(process.env.SMTP_PORT || 587);
   const secure = String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465;
   transporter = nodemailer.createTransport({
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     host: process.env.SMTP_HOST,
     port,
     secure,
@@ -42,7 +45,8 @@ async function sendWithBrevo({ to, subject, text, html }) {
       "api-key": apiKey,
       "content-type": "application/json"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15000)
   });
 
   const raw = await response.text();
@@ -54,8 +58,8 @@ async function sendWithBrevo({ to, subject, text, html }) {
   }
 
   if (!response.ok) {
-    const detail = data?.message || data?.code || raw || "Unknown Brevo API error";
-    throw new Error(`Brevo API ${response.status}: ${String(detail).slice(0, 300)}`);
+    // Provider responses may contain recipient addresses or credentials.
+    throw new Error(`Brevo API ${response.status}`);
   }
 
   return {
@@ -69,6 +73,7 @@ export async function sendMail({ to, subject, text, html }) {
   const mode = String(process.env.EMAIL_MODE || "console").toLowerCase();
 
   if (mode === "console") {
+    if (process.env.NODE_ENV === "production") throw new Error("Console email is disabled in production.");
     console.log("EMAIL", { to, subject, text });
     return { ok: true, mode };
   }
