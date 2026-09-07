@@ -8,12 +8,11 @@ import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import pg from 'pg';
-import { filesUnder, checkBrowserScripts } from './check-browser-syntax.js';
+import { filesUnder } from './check-browser-syntax.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'jovelya-release-gate-'));
 const fixture=path.join(scratch,'app');
-const build=path.join(scratch,'build');
 const allowed=/^(PATH|HOME|USERPROFILE|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|TMPDIR|LD_LIBRARY_PATH|DYLD_LIBRARY_PATH|PG_BIN|OPENSSL_BIN|PLAYWRIGHT_EXECUTABLE_PATH|PLAYWRIGHT_BROWSERS_PATH|CI|GITHUB_ACTIONS|NODE_EXTRA_CA_CERTS)$/i;
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>allowed.test(key)));
 Object.assign(env,{NODE_ENV:'test',APP_STAGE:'test',DOTENV_CONFIG_PATH:path.join(scratch,'absent.env')});
@@ -36,20 +35,8 @@ try {
   }
   console.log('Release gate: recursive backend syntax');
   for(const file of filesUnder(path.join(fixture,'server')).filter(f=>/\.(js|mjs|cjs)$/.test(f)))run(process.execPath,['--check',file]);
-  console.log('Release gate: two complete build passes, release assertions and generated syntax');
-  // Regression suites prepare their own builds from source; keep that source pristine.
-  fs.mkdirSync(build);
-  for(const name of ['server','public','package.json','render.yaml'])fs.cpSync(path.join(fixture,name),path.join(build,name),{recursive:true});
-  fs.symlinkSync(path.join(root,'node_modules'),path.join(build,'node_modules'),'junction');
-  const pkg=JSON.parse(fs.readFileSync(path.join(fixture,'package.json'),'utf8'));
-  for(let pass=0;pass<2;pass++)for(const command of [pkg.scripts['prepatch:public'],...pkg.scripts['patch:public'].split(' && ')]) {
-    if(!/^node [\w./-]+$/.test(command))throw new Error('Review release gate support for the changed build command.');
-    run(process.execPath,[command.slice(5)],build);
-  }
-  run(process.execPath,['server/release-check.js'],build,true);
-  run(process.execPath,['server/pg-transform.js'],build);
-  run(process.execPath,['--check','server/index.pg.generated.js'],build);
-  checkBrowserScripts(path.join(build,'public'));
+  console.log('Release gate: reproducible clean builds, release assertions and generated syntax');
+  run(process.execPath,['server/build-check.js'],fixture,true);
   console.log('Release gate: starting a new isolated PostgreSQL cluster for C2');
   run(binary('initdb'),['-D','data','-U','postgres','--auth=trust','--no-locale','--encoding=UTF8'],scratch);
   const probe=net.createServer();probe.listen(0,'127.0.0.1');await once(probe,'listening');
@@ -65,7 +52,7 @@ try {
   if(!ready)throw new Error('Isolated PostgreSQL readiness timeout.');
   env.TEST_DATABASE_URL=`postgresql://postgres@127.0.0.1:${port}/postgres?sslmode=disable`;
   const tests=filesUnder(path.join(fixture,'server')).filter(f=>f.endsWith('.test.js'));
-  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax','session.browser','record-network.browser','account.backend','account.browser','production-readiness','accessibility-ux.browser','container-runtime']) {
+  for(const required of ['application.browser','auth-tokens','http-errors','database-tls','recovery','interview','check-browser-syntax','session.browser','record-network.browser','account.backend','account.browser','production-readiness','accessibility-ux.browser','container-runtime','patch-idempotence']) {
     if(!tests.some(f=>path.basename(f)===required+'.test.js'))throw new Error('Missing required regression suite: '+required);
   }
   console.log(`Release gate: ${tests.length} regression suites (C1–C5, Interview, accessibility/UX, container runtime and gate checks)`);

@@ -26,7 +26,8 @@
     "restore": "node server/restore-backup.js",
     "platform-check": "node server/platform-check.js",
     "prepatch:public": "node server/patch-home-dashboard-layout-v20-3-9.js",
-    "test:release": "npm run patch:public && npm run patch:public && node server/release-check.js && npm run build:pg && node --check server/index.pg.generated.js"
+    "test:release": "node server/build-check.js",
+    "build": "node server/build-check.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

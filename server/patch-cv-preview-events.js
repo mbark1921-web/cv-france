@@ -20,7 +20,8 @@ window.addEventListener('pageshow',()=>setTimeout(updateCvPreview,0));
 setTimeout(updateCvPreview,50);
 `;
 
-html = html.replace(marker, patch + marker);
+// Replace earlier copies too: repeated starts must not register duplicate listeners.
+html = html.replaceAll(patch, '').replace(marker, patch + marker);
 
 if (html !== before) {
   fs.writeFileSync(indexPath, html, 'utf8');

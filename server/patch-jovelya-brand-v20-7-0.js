@@ -14,6 +14,7 @@ const indexPath = path.resolve('public/index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 html = html.replace(/<title>Jovelya v[\d.]+<\/title>/, '<title>Jovelya — Votre carrière, simplement.</title>');
 html = html.replace(/<h2>Jovelya <small>v([\d.]+) Production<\/small><\/h2>/, '<h2 class="jovelya-brand">Jovelya <small>v$1 Production</small></h2>');
-html = html.replace('</style>', '.jovelya-brand{font-weight:800;letter-spacing:-.02em}.jovelya-brand::first-letter{color:#6366f1}</style>');
+const brandStyle = '.jovelya-brand{font-weight:800;letter-spacing:-.02em}.jovelya-brand::first-letter{color:#6366f1}';
+html = html.replaceAll(brandStyle, '').replace('</style>', brandStyle + '</style>');
 fs.writeFileSync(indexPath, html, 'utf8');
 console.log('Applied Jovelya bilingual brand v20.7.0');
