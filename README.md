@@ -1,21 +1,49 @@
-# CV France v20.2.1
+# Jovelya / CV France v20.7.0
 
 Application de création de CV, lettres de motivation et suivi de candidatures.
 
 ## Production Render
 Le dépôt contient `render.yaml` pour déployer le service Docker en production. L'hébergement reste configuré sur le plan gratuit (`plan: free`).
 
-Configuration actuelle: `APP_STAGE=production`, `EMAIL_MODE=console`, `AI_MODE=mock`. Stripe reste optionnel tant que les variables correspondantes ne sont pas configurées.
+Configuration du Blueprint : `NODE_ENV=production`, `APP_STAGE=production`,
+`EMAIL_MODE=brevo`, `AI_MODE=disabled`. La phase de lancement gratuite désactive
+la facturation et les appels IA externes dans le serveur généré. Laisser les
+variables Stripe et OpenAI vides. Le mode console et le mode IA mock ne passent
+pas la readiness lorsque `NODE_ENV=production`, même avec `APP_STAGE=staging`.
+
+Le nom `cv-france-staging` est conservé pour le service existant et son URL
+`https://cv-france-staging.onrender.com`. Ce nom ne détermine pas le mode de
+sécurité. Le domaine public définitif et la configuration réellement déployée
+doivent être vérifiés dans Render ; le dépôt ne les certifie pas.
+
+Utiliser `.env.render.example` comme liste de configuration à compléter. Ne jamais
+publier ses valeurs secrètes. Les exemples ne contiennent pas d'identifiants
+fonctionnels. `/api/startup` contrôle l'admission initiale ; surveiller aussi
+`/api/readiness` pour les dépendances après le démarrage.
+
+Le système de fichiers Render sans disque persistant est éphémère : `/data` et
+`BACKUP_DIR` ne constituent pas une sauvegarde durable. Configurer et vérifier
+les sauvegardes/PITR du fournisseur et une restauration dans une base jetable.
+`npm run backup` est un outil de récupération locale isolée, pas une sauvegarde
+de la base de production (voir le runbook C5 ci-dessous).
 
 ## Sécurité
 Ne jamais committer `.env`, clés API, secrets Stripe, mots de passe SMTP ou bases SQLite. `.gitignore` protège ces fichiers.
 
 ## Commandes
+- `npm run build` / `npm run test:release` : qualification de deux builds indépendants
+  dans des répertoires temporaires, comparaison SHA-256 des sorties et validation
+  de la syntaxe ; aucun fichier généré n'est écrit dans le dépôt.
 - `npm start`
 - `npm run doctor`
 - `npm run platform-check`
 - `npm run test:smoke`
 - `npm run backup`
+
+`patch:public` et `build:pg` sont les étapes historiques internes de démarrage du
+conteneur ; elles modifient leurs fichiers de travail. Pour qualifier localement
+le build sans modifier le checkout, utiliser `build`, `test:release` ou `test:ci`.
+Le démarrage local avec `npm start` reste distinct d'une qualification de build.
 
 ## PostgreSQL TLS verification (C4)
 
@@ -68,7 +96,7 @@ never read the application's `DATABASE_URL` or `.env`.
 ## Release test gate / GitHub Actions
 
 `npm run test:ci` is the shared local/CI release gate. It runs recursive backend
-syntax checks, two complete frontend build passes, the release assertions,
+syntax checks, two independent frontend builds with identical output hashes, the release assertions,
 generated backend syntax, and every inline JavaScript block in every public HTML
 page plus every standalone public JS/MJS/CJS file (including the service worker).
 It then runs all `server/**/*.test.js` suites and explicitly requires C1 Jobs/browser,
