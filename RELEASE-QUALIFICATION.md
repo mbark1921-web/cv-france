@@ -2,6 +2,132 @@
 
 Verdict actuel : **NO-GO**. Les résultats locaux ne certifient pas la production.
 
+## Correctif de synchronisation des labels — 8 septembre 2026
+
+Cause des deux échecs FR/AR identifiée dans le code :
+`syncApplicationI18n()` ajoute un `aria-label` à `appDate` et `appNotes`, notamment
+via un délai de 140 ms. `ensureControlName()` ignorait tout contrôle ayant déjà
+un nom ARIA. Selon l'ordre des scripts, les labels HTML explicites existaient
+ou non. Le nom accessible n'était donc pas systématiquement absent ; c'était
+la structure de labellisation qui dépendait de l'ordonnancement.
+
+Le correctif conserve un label HTML explicite pour les champs connus, même si
+une couche historique a déjà posé un nom ARIA. Il respecte les labels existants
+et les noms des autres contrôles. La fixture des tests force désormais
+`syncApplicationI18n()` avant le script d'accessibilité pour couvrir l'ordre
+défaillant sans délai ajouté ni assertion affaiblie. Le total reste 181 tests.
+
+Qualification du correctif : **181/181 réussis, 0 échec, 0 ignoré**, commande
+`npm run test:ci`, sortie 0 et `RELEASE GATE PASSED` ; suites en 427,1 s.
+Builds indépendants identiques, syntaxe récursive et navigateur vérifiée.
+Un premier run du même correctif avait 171 succès et 10 échecs issus d'un seul
+hook `Test server startup timeout` à 10 s dans la fixture backend de compte.
+La relance complète ci-dessus passe sans aucune modification entre les runs,
+ni suppression de test ni assouplissement d'assertion. Ce délai local intermittent
+reste une limite de fiabilité de la fixture, distincte du défaut de labels corrigé.
+Diff final limité au correctif, au scénario de test et aux preuves de ce rapport ;
+`git diff --check` réussi. Les preuves historiques ci-dessous sont conservées.
+
+### Points opérateur encore ouverts
+
+- Brevo : créer manuellement une clé API de remplacement, la saisir uniquement
+  dans `BREVO_API_KEY` sur Render, redéployer puis révoquer l'ancienne clé exposée.
+  Ni la création/saisie ni la révocation n'ont encore été vérifiées. Aucun secret
+  ne doit être transmis dans la conversation ou les logs.
+- Parcours et courriels réels : adresse contrôlée/compte de test autorisé demandé,
+  aucun envoi à une adresse arbitraire. Réception et liens à vérifier après rotation.
+- Sauvegardes : sauvegardes gérées et PITR ne sont pas inclus dans Free ; un export
+  logique hors site reste possible sur Free, recommandé par la
+  [documentation Supabase](https://supabase.com/docs/guides/platform/backups).
+  Le test local jetable vérifie les outils, pas l'existence d'une sauvegarde durable
+  du projet. Destination privée, accès sécurisé et restauration isolée restent à établir.
+- Domaine : le domaine Render HTTPS existant fonctionne ; un domaine personnalisé
+  n'est pas en soi une exigence technique. Le choix de l'URL de lancement appartient
+  à l'opérateur.
+- Confidentialité : la page renvoie à une adresse de support non explicitement
+  publiée dans son texte. Identité et coordonnées du responsable ainsi que les
+  durées/critères de conservation doivent être précisés sur la base des informations
+  opérateur, conformément aux [éléments d'information CNIL](https://www.cnil.fr/fr/conformite-rgpd-information-des-personnes-et-transparence).
+  L'identité/statut de l'éditeur et la condition annoncée dans les mentions légales
+  ne sont pas certifiés par les tests techniques. Aucune identité inventée.
+
+## Déploiement sain vérifié le 8 septembre 2026 après correction opérateur
+
+Ces observations remplacent le blocage d'authentification décrit ci-dessous.
+Render indique **Deploy succeeded | Live** pour `dep-dafkp1on74is73affin0`,
+source `2c3191d274bf13275578bae3428405c2867f9e7b`, déploiement manuel du
+8 septembre à 01:45:11 GMT+2, durée 54,2 s. Les logs annoncent Live à 01:46:06.
+
+Les GET HTTPS publics `/`, `/api/health`, `/api/startup` et `/api/readiness`
+répondent tous **200**. Health retourne la version `20.7.0`, startup `ok:true`,
+readiness `ok:true` avec tous les contrôles vrais, dont `database:true`.
+Ce dernier contrôle exécute réellement `SELECT 1` via le pool PostgreSQL du
+serveur : la connexion applicative est vérifiée, sans écriture de données.
+Le pooler Supabase confirme **Connection authenticated** et **Backend authenticated**
+à 01:46:05 puis 01:48:56 ; les 14 résultats de la dernière heure ne contiennent
+aucun refus d'authentification. Le problème antérieur est résolu sur ce déploiement.
+
+Contrôle navigateur public : accueil et état serveur OK, bascule FR/AR, formulaire
+de compte arabe avec noms accessibles et disposition RTL lisible. Aucun compte
+créé, aucun courriel envoyé et aucune donnée de production modifiée. Cela ne
+certifie pas encore le parcours authentifié complet ni la livraison réelle Brevo.
+La rotation de la clé Brevo, une sauvegarde durable et sa restauration, ainsi que
+les validations opérateur restantes demeurent des conditions de GO.
+
+### Gate final après correction du secret : échec
+
+`npm run test:ci` a été relancé sur le même SHA, sans changement applicatif.
+Résultat : **181 tests, 179 réussis, 2 échoués, 0 ignoré**, sortie 1.
+Les deux cas `core fields and live regions are accessible (fr/ar)` échouent
+dans `server/accessibility-ux.browser.test.js:30` : aucun `label[for="appDate"]`
+au moment de l'assertion, au lieu d'un. Le gate final remplace donc le précédent
+résultat local vert pour la décision actuelle ; le workflow GitHub antérieur
+reste vert mais ne justifie pas d'ignorer cette reproduction.
+Dans le navigateur en ligne, le champ date arabe possède un nom accessible après
+navigation vers Candidatures. Cela ne suffit pas à expliquer ni lever l'échec
+de l'assertion initiale. La cause précise doit être résolue avant un nouveau GO.
+
+Les builds indépendants sont identiques, la syntaxe de 41 scripts / 10 fichiers
+passe, ainsi que les tests TLS, mailer, compte, réseau, sessions et restauration
+locale. Aucun code modifié conformément à l'instruction opérateur. Aucun nouveau
+commit ni push : le gate requis est en échec. Diff du rapport contrôlé sans erreur
+de whitespace. La rotation Brevo n'est pas confirmée à ce stade.
+
+## Complément vérifié le 8 septembre 2026
+
+Le candidat `2c3191d274bf13275578bae3428405c2867f9e7b` a un Release Gate
+GitHub réussi ([34148636331](https://github.com/mbark1921-web/cv-france/actions/runs/34148636331)).
+Les 181 tests locaux réussis restent la dernière qualification complète ; aucun
+correctif applicatif n'a été ajouté depuis. Les constats ci-dessous remplacent
+les mentions d'accès Supabase bloqué et de déploiement encore en attente plus bas.
+
+- Render : `dep-daffeh97lnhs73fma2j0`, source `2c3191d`, est **Deploy failed**
+  après 15 min 13 s. Le serveur écoute sur 3000 à 19:42:09 le 7 septembre
+  (GMT+2), puis Render expire à 19:56:39 faute de succès de `/api/startup`.
+  Ce candidat n'a donc pas été promu Live.
+- Supabase : connexion au tableau de bord réussie. Projet déclaré **Healthy**.
+  Les logs du pooler sur les dernières 24 heures montrent le 7 septembre
+  à 19:56:09, :19, :29 et :39 « password authentication failed for user
+  postgres », ainsi que des blocages temporaires `auth_error` pour trop d'échecs.
+  Ces erreurs coïncident avec le dernier déploiement, et ne sont pas seulement
+  historiques. Le code littéral `28P01` n'est pas affiché dans cette vue ;
+  l'échec d'authentification est en revanche directement confirmé.
+- Les 13 tables publiques ont RLS activée, aucune politique, et **API DISABLED**.
+  Le tableau de bord confirme qu'elles sont inaccessibles via la Data API.
+  Aucun droit ni aucune politique n'a été modifié.
+- La page des sauvegardes confirme que le plan gratuit n'inclut pas les
+  sauvegardes du projet. Aucune sauvegarde externe durable ni restauration
+  de copie de production n'est encore vérifiée. Aucun abonnement modifié.
+
+Blocage immédiat : l'opérateur doit corriger le mot de passe PostgreSQL dans
+`DATABASE_URL` sur Render avec le mot de passe valide du projet, en encodant
+correctement les caractères réservés, puis enregistrer et redéployer. Ne pas
+communiquer ce secret dans la conversation. Aucune rotation n'a été effectuée.
+Après cette correction restent à vérifier le lien Render–PostgreSQL de bout en
+bout, les sondes publiques, le parcours en ligne et la qualification finale.
+La rotation de la clé Brevo exposée lors du contrôle précédent reste nécessaire
+avant la production, sous contrôle de l'opérateur.
+
 ## Référence et périmètre
 
 Après `git fetch origin`, HEAD, origin/main et la référence GitHub main correspondent
