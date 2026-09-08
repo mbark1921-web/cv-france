@@ -13,3 +13,6 @@ backups/
 # PostgreSQL recovery archives and their manifests
 *.dump
 *.dump.json
+
+# Local qualification artifacts and logs
+tmp/

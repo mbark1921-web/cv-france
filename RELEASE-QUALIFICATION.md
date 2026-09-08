@@ -1,6 +1,156 @@
-# Jovelya 20.7.0 — qualification du 7 septembre 2026
+# Jovelya 20.7.0 — qualification, mise à jour du 9 septembre 2026
 
 Verdict actuel : **NO-GO**. Les résultats locaux ne certifient pas la production.
+
+## Correctif PDF — vérification locale du 9 septembre
+
+L’opérateur a confirmé un **échec réel** du bouton « Enregistrer en PDF » : aucun
+dialogue ni téléchargement. Les derniers gestionnaires appelaient `window.print()`,
+ce qui dépendait du dialogue d’impression de l’environnement et ne produisait aucun
+fichier téléchargeable dans le navigateur intégré utilisé. Ce constat remplace
+l’ancienne hypothèse d’un simple contrôle manuel restant à faire.
+
+Le correctif remplace ce gestionnaire par une génération locale jsPDF et un lien
+Blob de téléchargement explicite. Bibliothèque et polices FR/AR sont servies par
+l’application, sans CDN ni transmission des contenus à un convertisseur externe.
+Le bouton expose l’état de génération, empêche les clics concurrents et affiche
+une erreur récupérable si les ressources ne chargent pas. Aucun recours à Ctrl+P.
+
+Quatre nouveaux tests passent : huit modèles en FR, huit en AR, contenu long
+paginé, échec de police puis nouvelle tentative. Les tests déclenchent le bouton,
+enregistrent le vrai téléchargement, ouvrent le PDF avec un lecteur indépendant
+et vérifient format A4 et texte sélectionnable. `window.print` est interdit dans
+la fixture. L’ordre arabe est vérifié sur le nom et une phrase entière après
+normalisation Unicode ; le double renversement initial a été corrigé.
+
+Les 17 PDF générés ont été rendus avec Poppler : inspection des huit modèles dans
+les deux langues, du modèle classique agrandi, des colonnes FR/AR et de la dernière
+page du CV long (4 pages, marqueur final intact). Les mises en page PDF sont
+recomposées pour A4 à partir des champs, avec colonnes et accents selon le modèle ;
+elles ne constituent pas une capture pixel pour pixel de l’aperçu HTML.
+`npm audit` indique zéro vulnérabilité connue au moment du contrôle.
+Le gate complet `npm run test:ci` est **RELEASE GATE PASSED** : **185/185**,
+zéro échec, zéro ignoré, durée des suites **425,0 s**. Il comprend les 181 tests
+existants et quatre nouveaux tests PDF. Deux builds indépendants identiques,
+syntaxe générée et exercice PostgreSQL jetable validés. La revue du diff ne révèle
+aucune modification des autres fonctions applicatives, des secrets ou des données.
+La vérification déployée du correctif reste à consigner.
+
+## Blocages de qualification encore ouverts
+
+- Sauvegarde : aucune archive réelle du projet dans une destination durable fournie,
+  donc aucune restauration isolée de cette archive certifiée. Les tests existants
+  utilisent des données synthétiques et ne prouvent pas une sauvegarde de production.
+  Le plan Supabase Free n’inclut pas les sauvegardes gérées/PITR ; un export logique
+  sécurisé avec stockage externe et restauration locale reste techniquement possible.
+  Les commandes `npm run backup/restore` du dépôt refusent volontairement les sources
+  de production : ce sont les outils d’exercice local, pas un export Supabase.
+- Informations opérateur : identité et contact légal explicites, ou éléments
+  justifiant le régime d’éditeur non professionnel, non fournis ; contact public
+  d’exercice des droits et durées/critères effectifs de conservation à finaliser.
+  Aucune identité, adresse ou politique de purge n’a été inventée.
+
+La destination de sauvegarde et les informations légales ont été demandées à
+l’opérateur. Aucun secret n’a été demandé dans le chat. Aucun dump de données
+personnelles n’est stocké dans le dépôt. Brevo reste clôturé ; les contrôles
+historiques ci-dessous sont conservés comme historique, leurs anciens blocages
+sont remplacés par les constats les plus récents.
+
+## Parcours connecté — contrôles en lecture seule
+
+Après connexion opérateur, le compte autorisé affiche **Connecté** et **Mon compte**.
+Les trois CV existants et une candidature existante se chargent ; les sections
+Lettres et Candidatures s'ouvrent, et le champ date conserve son nom accessible.
+Aucun document existant n'a été modifié ni supprimé. Un CV de démonstration a été
+saisi uniquement dans le formulaire ; l'aperçu affiche le nom, le poste et les
+sections attendues. Aucune sauvegarde serveur de ce document n'a été demandée.
+Ce contrôle valide la session, la lecture et la navigation ; il ne certifie pas
+un cycle d'écriture complet sur le compte de production.
+
+Le bouton PDF a été actionné dans cette session authentifiée. L'état accessible
+et la capture du navigateur intégré restent sur le formulaire/aperçu : aucun
+dialogue d'impression ni fichier enregistré n'a pu être constaté. Le document
+fictif reste prêt dans l'onglet conservé pour un enregistrement manuel ; le fichier
+devra ensuite être ouvert et inspecté avant de lever le blocage PDF.
+
+## Rotation Brevo clôturée après contrôle des statuts
+
+Après confirmation opérateur, la liste Brevo a été relue uniquement pour les
+noms et statuts : `CV France Production` est **Désactivée** et
+`Jovelya Render rotation 2026-09-08` reste **Active**. La désactivation révoque
+l'utilisation de l'ancienne clé ; elle n'a pas été supprimée de la liste.
+Avec le redéploiement et la livraison réelle déjà vérifiés ci-dessous, le
+blocage de rotation Brevo est levé. Aucun nouvel envoi ni contrôle de déploiement
+n'a été répété. Les passages historiques décrivant la révocation en attente
+sont remplacés par ce constat.
+
+Restent ouverts : parcours authentifié sur une session fournie par l'opérateur,
+fichier PDF réellement enregistré et inspecté, sauvegarde durable du projet et
+restauration isolée de cette sauvegarde, identité/contact légal et informations
+de conservation à finaliser. Ces points empêchent encore un GO global.
+
+À la reprise suivante, l'application a affiché `Non connecté` dans Compte.
+L'onglet de connexion au compte autorisé a été préparé et conservé pour la saisie
+opérateur. Aucun mot de passe demandé dans la conversation, aucune donnée du
+compte modifiée. Emplacement de sauvegarde/destination durable et informations
+d'identité, contact et conservation demandés ; aucune réponse encore disponible.
+
+## Livraison réelle confirmée et ancienne clé identifiée
+
+Un seul courriel de réinitialisation a été demandé via le formulaire déployé,
+uniquement vers l'adresse du compte explicitement autorisée par l'opérateur.
+Brevo confirme les événements **Envoyé** puis **Délivré** le 8 septembre à 14:31.
+Le lien et le contenu secret du courriel n'ont pas été ouverts ; aucun mot de
+passe n'a été modifié. La livraison au fournisseur destinataire est vérifiée,
+sans prétendre avoir confirmé son classement dans la boîte principale.
+
+La clé `Jovelya Render rotation 2026-09-08`, créée le 8 septembre à 14:19,
+est active et sa dernière utilisation est le 8 septembre. L'ancienne clé
+`CV France Production`, créée le 1 septembre à 00:30, est encore active,
+dernière utilisation affichée le 3 septembre. Seule cette ancienne ligne a été
+sélectionnée ; sa fenêtre de désactivation est ouverte. Le bouton final
+`Désactiver` attend l'intervention opérateur imposée pour cette modification
+d'identifiant. La révocation n'est donc pas encore déclarée accomplie.
+
+## Rotation Brevo — remplacement déclaré et redéploiement vérifié
+
+L'opérateur confirme avoir généré la clé de remplacement puis enregistré le secret
+sur Render. Aucune valeur secrète n'a été lue ou affichée dans cette étape.
+Le déploiement manuel `dep-dafvt5tg1s2s738e0om0` du 8 septembre à 14:24:55 GMT+2
+est **Live**, durée 44,3 s, sur `d0ab05b788b8cb4dbfaf6f34050416d9c31ce07d`.
+Les GET health/startup/readiness répondent **200**, avec `ok:true`, `email:true`
+et `database:true`. Ces contrôles ne prouvent pas l'authentification auprès de
+Brevo ni la livraison d'un courriel. Adresse de réception contrôlée et autorisée
+demandée à l'opérateur ; aucun envoi effectué à ce stade. L'ancienne clé n'a pas
+été révoquée : conformément à l'ordre demandé, sa révocation attend la livraison
+réussie via le déploiement utilisant la nouvelle clé. Rotation donc non clôturée.
+
+## Vérification après poussée de d0ab05b
+
+Commit poussé : `d0ab05b788b8cb4dbfaf6f34050416d9c31ce07d`.
+Le [GitHub Release Gate 34191669355](https://github.com/mbark1921-web/cv-france/actions/runs/34191669355)
+est **completed / success** sur ce SHA. Render indique **Deploy succeeded | Live**
+pour `dep-dafq0k49v7es73cbkvmg`, même SHA, durée 56,9 s, annonce Live à
+07:43:37 GMT+2 le 8 septembre. Les GET `/api/health`, `/api/startup` et
+`/api/readiness` sont **200**, version 20.7.0, `ok:true` et `database:true`.
+Les trois pages mentions légales, confidentialité et conditions répondent 200.
+Aucune configuration Render/Supabase modifiée dans cette étape.
+
+Le formulaire déployé présente le champ date nommé en FR et AR. Un CV fictif
+non enregistré côté serveur a été saisi ; l'aperçu restitue les sections et le
+contenu. Le bouton PDF a été actionné, mais aucun fichier PDF enregistré ni
+téléchargement achevé n'a été observé. L'export réel reste **non certifié**.
+L'onglet temporaire a ensuite été fermé entre les tours ; aucune validation
+supplémentaire de l'impression ne peut être déduite de son ancien état.
+
+Le parcours authentifié et la réception de courriels restent en attente d'une
+session/adresse de qualification autorisée, demandée à l'opérateur. Aucun compte
+créé ni courriel envoyé. Brevo redirige vers sa page **Log In** : action immédiate
+requise, connexion opérateur à Brevo. Aucune nouvelle clé créée, affichée ou saisie.
+La révocation de l'ancienne clé exposée et le déploiement de sa remplaçante ne
+sont pas confirmés. Les points sauvegarde et identité/contact légal ci-dessous
+restent ouverts. Le domaine Render existant ne constitue pas un blocage technique
+à lui seul.
 
 ## Correctif de synchronisation des labels — 8 septembre 2026
 
