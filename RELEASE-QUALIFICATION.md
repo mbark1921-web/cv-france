@@ -1,8 +1,34 @@
 # Jovelya 20.7.0 — qualification, mise à jour du 9 septembre 2026
 
-Verdict avant publication des pages légales : **NO-GO temporaire**, dans l’attente
-des contrôles du nouveau déploiement. Sauvegarde durable et restauration
-isolée réelle réussies ; informations légales validées et prêtes à publier.
+Verdict : **GO FOR PRODUCTION** pour la version applicative qualifiée ci-dessous.
+Les blocages demandés sont clôturés : gate complet, déploiement, pages légales,
+parcours authentifié/PDF, rotation Brevo et sauvegarde/restauration réelle.
+
+## Publication finale vérifiée — 9 septembre 2026
+
+- Version applicative : `bddce496b006b2ada92eaffecc804cee348d8fe9`, poussée sur `main`
+  après le gate local **185/185**, zéro échec, ignoré ou annulé.
+- [GitHub Release Gate](https://github.com/mbark1921-web/cv-france/actions/runs/34343062627) :
+  `completed / success` pour ce SHA exact.
+- Render : déploiement `dep-dagjnle417fc73fju06g`, **Live** ; lien « Last successfully
+  deployed commit » relu avec ce SHA complet, durée affichée 42,8 s.
+- `/api/health`, `/api/startup`, `/api/readiness` : **HTTP 200**, `ok: true`.
+  Nouvelle lecture de readiness : `checks.database: true` (sonde réelle PostgreSQL).
+- [Mentions légales](https://cv-france-staging.onrender.com/mentions-legales.html) et
+  [confidentialité](https://cv-france-staging.onrender.com/privacy.html) relues sur
+  le service déployé : M’Bark Abehri, personne physique, Jovelya / CV France,
+  contact public approuvé et cinq règles de conservation exactes présents.
+- Diff final contrôlé ; aucun secret, paramètre d’infrastructure, contenu de
+  production ou archive de sauvegarde modifié par cette publication.
+
+La publication suivante de ce rapport est exclusivement documentaire : elle ne
+change pas la version applicative qualifiée ci-dessus. Les entrées historiques
+ci-dessous conservent leur contexte ; leurs anciens NO-GO ne sont plus le verdict
+courant. Les contrôles précédemment clôturés n’ont pas été répétés.
+
+Obligation d’exploitation conservée : appliquer les durées approuvées, notamment
+la conservation des sauvegardes sur 30 jours. Aucune automatisation récurrente ou
+suppression automatique Drive n’est annoncée comme mise en place.
 
 ## Fixture des comptes et gate final — correction qualifiée
 
