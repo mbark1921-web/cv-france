@@ -1,6 +1,182 @@
 # Jovelya 20.7.0 — qualification, mise à jour du 9 septembre 2026
 
-Verdict actuel : **NO-GO**. Les résultats locaux ne certifient pas la production.
+Verdict avant publication des pages légales : **NO-GO temporaire**, dans l’attente
+des contrôles du nouveau déploiement. Sauvegarde durable et restauration
+isolée réelle réussies ; informations légales validées et prêtes à publier.
+
+## Fixture des comptes et gate final — correction qualifiée
+
+Le premier gate de publication échoue sur les dix tests dépendant du hook des
+comptes. Il n’a pas produit de bilan final complet : un échec de nettoyage Windows
+`EPERM` a remplacé l’erreur du gate dans la sortie finale. Ce passage n’est pas
+présenté comme réussi et les tests non terminés ne sont pas comptés comme passants.
+
+Diagnostic : l’ancienne fixture lance un second processus Node et attend un message
+IPC pour connaître le port HTTP, alors que le runner isole déjà chaque fichier de
+test. Les instrumentations isolée puis accessibilité + comptes reproduisent un
+serveur prêt en environ 1,1 s et dix tests verts ; le retard intermittent exact du
+processus enfant n’a pas été reproduit pendant ces mesures. Aucun défaut PostgreSQL
+ou fonctionnel du compte n’en est déduit.
+
+La fixture démarre désormais le **vrai backend généré dans le processus isolé du
+fichier de test** et attend son écoute HTTP effective. Le processus supplémentaire
+et l’attente IPC fragile sont supprimés ; erreurs d’import/d’écoute remontent
+directement. Le délai de démarrage reste **10 secondes**, les dix assertions de
+parcours FR/AR et les scénarios d’erreur restent inchangés. Serveur, connexions,
+variables d’environnement et gestionnaires de signaux sont nettoyés après la suite.
+Le passage ciblé est **10/10**, zéro échec, ignoré ou annulé.
+
+Le gate utilise TAP pour conserver immédiatement les causes d’échec des hooks,
+réessaie brièvement le nettoyage des seuls répertoires temporaires verrouillés et
+préserve toujours l’erreur initiale si le nettoyage échoue aussi. Aucun test ignoré,
+aucun seuil métier ou délai de requête assoupli. Le gate complet corrigé termine
+avec **185/185 tests réussis, 0 échec, 0 ignoré, 0 annulé**, en 404,393 s pour
+les tests. Contrôles syntaxiques, constructions propres reproductibles et assertions
+de release réussis ; commande `npm run test:ci`, code de sortie 0 et message
+`RELEASE GATE PASSED`, le 9 septembre 2026. Publication autorisée après ce résultat.
+
+## Sauvegarde durable et restauration réelle — blocage clôturé le 9 septembre
+
+Export PostgreSQL **17.11** depuis la source **17.6**, en transactions de lecture
+seule et instantané cohérent partagé avec `pg_dump`. TLS `verify-full` avec le
+certificat public téléchargé depuis le lien du tableau Supabase ; aucun contrôle
+TLS désactivé. Connexion saisie par l’opérateur, protégée avec Windows DPAPI et
+utilisée uniquement en mémoire/environnement enfant, sans sortie de secret.
+
+Archive logique du schéma applicatif `public`, soit les **13 tables** attendues :
+**62 903 octets**, SHA-256
+`58139cdb6a077e1d3bb8ad1bc3dc53748d5d6ce8887f7fdfacb10c4a83181ceb`.
+Elle couvre les données applicatives, schéma, contraintes, index et séquences.
+Elle ne constitue pas une sauvegarde de toute la plateforme Supabase : schémas
+internes gérés, objets Storage, propriétaires et droits de rôles exclus.
+
+[Archive privée Google Drive](https://drive.google.com/file/d/1nTXV08YpvCFcXnn-am7TYAGwcooZTffn/view)
+dans le dossier dédié autorisé. Téléversement confirmé, taille relue identique,
+fichier non partagé, permission propriétaire uniquement. La récupération brute
+par le connecteur réussit et retourne une référence de fichier de 62 903 octets,
+sans contenu inline. Le connecteur ne matérialise pas cette référence sur le poste :
+la restauration utilise l’archive locale exacte ayant servi au téléversement,
+avec son SHA-256 recontrôlé avant et après ; aucun hash d’un aller-retour local
+Drive n’est prétendu. Le manifeste et le mode opératoire sont aussi déposés et
+relus dans le dossier, non partagés.
+
+Restauration dans une base temporaire PostgreSQL **17**, liée exclusivement à
+`127.0.0.1` sur un port aléatoire, jamais dans la source. Résultat vérifié à
+**2026-09-09 06:18:15 UTC** :
+
+- Liste exacte des **13 tables** et empreintes de toutes les lignes identiques.
+- Colonnes/types/nullabilité/défauts, contraintes validées et index identiques.
+- États RLS identiques ; **11 séquences identity** vérifiées contre les IDs existants,
+  sans incrémentation par `nextval`.
+- Archive SHA-256 inchangée ; base temporaire arrêtée et supprimée après contrôle.
+- Aucune écriture ni suppression de données de production.
+
+Le premier contrôle de contenu a échoué sur la représentation des horodatages ;
+la comparaison avec la session restaurée normalisée en UTC est ensuite identique.
+Le contrôle final inclut les séquences identity (pas seulement les défauts SERIAL).
+Les lignes et leur contenu n’ont pas été affichés dans les sorties de contrôle.
+
+Conservation opérateur : **30 jours**, révision/suppression des copies au
+**9 octobre 2026**. Il s’agit d’une sauvegarde ponctuelle ; aucune planification
+récurrente ni suppression automatique Drive n’a été créée. Ces opérations de
+maintenance restent à organiser par l’opérateur selon la politique validée.
+Le certificat d’autorité est public ; aucun réglage d’infrastructure ni secret
+Render/Supabase n’a été modifié. Les blocages historiques ci-dessous sont remplacés
+par cette preuve d’export durable et de restauration réelle.
+
+## Sauvegarde réelle — destination vérifiée, export bloqué
+
+Google Drive connecté accessible. Dossier dédié créé et relu :
+[Jovelya — sauvegardes PostgreSQL](https://drive.google.com/drive/folders/1Zfca5VlG_6rSe0uyCoVWZh-0psr9Y0Pd).
+Aucune archive n’y a encore été déposée ; sa création ne prouve pas une sauvegarde.
+
+Une requête SQL de métadonnées en lecture seule sur le projet autorisé confirme
+PostgreSQL **17.6**, base `postgres`, **13 tables publiques**. Aucun contenu de
+ligne ni secret n’a été retourné par cette vérification.
+
+Blocage : aucun identifiant PostgreSQL natif disponible dans l’environnement local,
+ni fichier `.env` du projet ou fichier libpq `pgpass.conf` disponible. Le connecteur
+SQL authentifié ne fournit pas de mot de passe utilisable par `pg_dump`. L’export
+nécessite une saisie locale sécurisée par l’opérateur, jamais dans le chat. Les
+outils portables locaux identifiés sont PostgreSQL 16 ; il faudra un `pg_dump`
+compatible avec le serveur 17 avant l’export réel. Aucun réglage ni donnée de
+production modifié, aucune rotation de secret effectuée. Aucun export de lignes
+via sortie SQL n’a été tenté. Restauration réelle non effectuée.
+
+La publication des modifications légales reste suspendue à la réussite de la
+sauvegarde/restauration, conformément à l’ordre explicite de l’opérateur.
+
+## Informations légales validées par l’opérateur — 9 septembre
+
+Les mentions légales et la politique de confidentialité locales indiquent désormais
+M’Bark Abehri, personne physique, exploitant/éditeur de Jovelya / CV France,
+contact public et exercice des droits : `mbark1921@gmail.com`.
+L’ancien texte conditionnel relatif à l’anonymat de l’éditeur est remplacé par
+l’identité fournie. Aucune adresse, immatriculation ou autre donnée n’est inventée.
+
+Durées expressément validées par l’opérateur et intégrées à la politique :
+
+- Journaux techniques : 30 jours.
+- Comptes inactifs : 24 mois.
+- Demandes de support et feedback : 24 mois.
+- Données d’un compte supprimé : suppression immédiate, sauf obligation légale contraire.
+- Sauvegardes techniques : 30 jours, lorsqu’elles sont disponibles.
+
+Il s’agit de la politique déclarée et validée par l’opérateur ; cette mise à jour
+éditoriale ne constitue pas une nouvelle preuve d’exécution des purges, ne modifie
+aucun mécanisme de suppression et ne certifie pas l’existence de sauvegardes.
+Contrôles éditoriaux : identité, contact, nom du service et cinq règles de
+conservation vérifiés après deux passages du remplacement de marque. Le libellé
+historique « CV France » du nom fourni est conservé dans le HTML rendu. Le contrôle
+de build reproductible et de syntaxe est vert ; `git diff --check` est vert.
+Aucune infrastructure ni aucun secret modifié. Les anciens passages ci-dessous
+signalant l’absence d’informations opérateur sont historiques et remplacés par
+cette confirmation. Les pages locales sont mises à jour ; leur publication n’est
+pas affirmée sans nouveau déploiement vérifié.
+
+## Confirmation opérateur — téléchargement PDF clôturé
+
+Le 9 septembre, l’opérateur confirme : « PDF téléchargé et enregistré avec succès ».
+Cette confirmation lève l’incertitude sur la récupération du fichier dans le
+navigateur intégré. Elle complète la génération dans la session authentifiée et
+l’ouverture/inspection indépendante du PDF déployé déjà vérifiées ci-dessous.
+L’ouverture de cette copie précise par l’opérateur n’est pas affirmée : sa
+confirmation porte sur le téléchargement et l’enregistrement. Aucun nouveau test,
+changement de code ou redéploiement n’est nécessaire pour consigner ce résultat.
+
+## Déploiement du correctif PDF — preuves finales
+
+Correctif commité et poussé après gate vert :
+`7b8700ecf1372b56f452065f303212a8c5937794`.
+[GitHub Release Gate 34289919264](https://github.com/mbark1921-web/cv-france/actions/runs/34289919264)
+: **completed / success**, même SHA. Render, après actualisation du tableau,
+indique ce commit comme **Last successfully deployed commit** et **Live** :
+`dep-dag9epuq1p3s73d885c0`, démarré le 9 septembre à 01:16:55 GMT+2.
+Les sondes `/api/health`, `/api/startup`, `/api/readiness` sont **HTTP 200**,
+`ok:true`, et la sonde réelle PostgreSQL `database:true`. Aucun réglage modifié.
+
+Le test navigateur contre le site déployé, sans mocks, déclenche le bouton et
+récupère **Qualification PDF - document fictif.pdf** : 37 299 octets, une page A4,
+texte sélectionnable et sections attendues, zéro écriture API. Fichier ouvert avec
+PDF.js, rendu avec Poppler et inspecté visuellement : pas de contenu manquant ni
+de chevauchement sur ce document. Copie locale : `tmp/pdfs/deployed-fr.pdf`.
+SHA-256 : `b7e5e0c693f0260ab54e9ce7f97ddc145bec91e4f31a10f66cb4de0206c2eaee`.
+
+Dans l’onglet de la session autorisée, après chargement du nouveau déploiement,
+**Mon compte**, e-mail confirmé et trois CV existants sont de nouveau constatés.
+Un document fictif est saisi sans sauvegarde serveur. Le bouton produit
+**PDF prêt.** et le lien **Télécharger le PDF**. Le téléchargement est vérifié
+sur le navigateur de test ci-dessus ; sa récupération locale dans le navigateur
+intégré n’est pas certifiée : aucun événement de téléchargement n’y a été reçu,
+et l’ouverture du lien `blob:` par l’outil est rejetée par sa politique de sécurité.
+Aucun contournement de cette politique ni Ctrl+P n’a été utilisé.
+Cette limite de l’outil est désormais complétée par la confirmation opérateur
+de téléchargement et d’enregistrement ci-dessus ; elle n’est plus un blocage.
+
+Verdict global : **NO-GO** jusqu’à sauvegarde réelle durable + restauration isolée,
+et finalisation des informations légales/contact/conservation. Brevo reste clôturé.
+Cette section consigne les preuves recueillies après la poussée du correctif ;
+elle est conservée dans le rapport local en attendant les éléments opérateur.
 
 ## Correctif PDF — vérification locale du 9 septembre
 
@@ -34,7 +210,7 @@ zéro échec, zéro ignoré, durée des suites **425,0 s**. Il comprend les 181 
 existants et quatre nouveaux tests PDF. Deux builds indépendants identiques,
 syntaxe générée et exercice PostgreSQL jetable validés. La revue du diff ne révèle
 aucune modification des autres fonctions applicatives, des secrets ou des données.
-La vérification déployée du correctif reste à consigner.
+La vérification déployée du correctif est consignée dans la section précédente.
 
 ## Blocages de qualification encore ouverts
 

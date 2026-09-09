@@ -17,7 +17,7 @@ const allowed=/^(PATH|HOME|USERPROFILE|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|TMPDIR
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>allowed.test(key)));
 Object.assign(env,{NODE_ENV:'test',APP_STAGE:'test',DOTENV_CONFIG_PATH:path.join(scratch,'absent.env')});
 const binary=name=>env.PG_BIN?path.join(env.PG_BIN,name+(process.platform==='win32'?'.exe':'')):name;
-let cluster;
+let cluster, gateError;
 function run(executable,args,cwd=fixture,visible=false) {
   const result=spawnSync(executable,args,{cwd,env,windowsHide:true,encoding:'utf8',stdio:visible?'inherit':'pipe',timeout:600000});
   if(result.status!==0)throw new Error(`Release gate failed: ${path.basename(executable)} ${args.join(' ')}\n${result.error?.message || ''}\n${result.stdout || ''}\n${result.stderr || ''}`);
@@ -56,12 +56,22 @@ try {
     if(!tests.some(f=>path.basename(f)===required+'.test.js'))throw new Error('Missing required regression suite: '+required);
   }
   console.log(`Release gate: ${tests.length} regression suites (C1–C5, Interview, accessibility/UX, container runtime and gate checks)`);
-  run(process.execPath,['--unhandled-rejections=strict','--test','--test-concurrency=1',...tests],fixture,true);
+  // TAP records hook failures immediately, even if a later suite never finishes.
+  run(process.execPath,['--unhandled-rejections=strict','--test','--test-reporter=tap','--test-concurrency=1',...tests],fixture,true);
   console.log('RELEASE GATE PASSED');
+} catch(error) {
+  gateError=error;throw error;
 } finally {
+  try {
   if(cluster && cluster.exitCode===null && cluster.signalCode===null) {
     const result=spawnSync(binary('pg_ctl'),['-D',path.join(scratch,'data'),'-m','fast','-w','stop'],{env,windowsHide:true,encoding:'utf8',timeout:15000});
     if(result.status!==0) {const stopped=once(cluster,'exit');cluster.kill();await stopped;}
   }
-  fs.rmSync(scratch,{recursive:true,force:true});
+  if(!path.resolve(scratch).startsWith(path.resolve(os.tmpdir())+path.sep+'jovelya-release-gate-'))throw new Error('Invalid temporary gate directory.');
+  fs.rmSync(scratch,{recursive:true,force:true,maxRetries:5,retryDelay:200});
+  } catch(cleanupError) {
+    if(!gateError)throw cleanupError;
+    // Keep the original gate failure rather than replacing it with a Windows lock error.
+    console.error('Release gate cleanup also failed:',cleanupError.code || 'CLEANUP_FAILED');
+  }
 }

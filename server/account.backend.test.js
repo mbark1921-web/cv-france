@@ -3,10 +3,10 @@ import { before, beforeEach, after, test } from 'node:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomBytes } from 'node:crypto';
-import { spawnSync, fork } from 'node:child_process';
-import { once } from 'node:events';
+import { spawnSync } from 'node:child_process';
+import express from 'express';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -16,7 +16,8 @@ const schema='account_test_'+randomBytes(8).toString('hex');
 const secret='synthetic-account-regression-secret-only-123456';
 const password='Synthetic-current-password';
 const signed=id=>jwt.sign({id,tv:0},secret);
-let db,child,scratch,base;
+let db,appDb,httpServer,scratch,base;
+let previousEnv,previousSignals;
 before(async()=>{
   assert.equal(process.env.NODE_ENV,'test');
   const url=new URL(process.env.TEST_DATABASE_URL);
@@ -32,15 +33,49 @@ before(async()=>{
   fs.writeFileSync(path.join(scratch,'package.json'),'{"type":"module"}');
   fs.symlinkSync(path.join(root,'node_modules'),path.join(scratch,'node_modules'),'junction');
   const source=path.join(scratch,'server/index.js');fs.writeFileSync(source,fs.readFileSync(source,'utf8').replace(/\r\n/g,'\n'));
-  const build=spawnSync(process.execPath,['server/pg-transform.js'],{cwd:scratch,encoding:'utf8'});assert.equal(build.status,0,build.stderr);
-  fs.writeFileSync(path.join(scratch,'bootstrap.js'),`import express from 'express';const listen=express.application.listen;express.application.listen=function(...args){const s=listen.apply(this,args);s.once('listening',()=>process.send({port:s.address().port}));return s;};await import('./server/index.pg.generated.js');`);
-  child=fork(path.join(scratch,'bootstrap.js'),[],{cwd:scratch,silent:true,execArgv:['--unhandled-rejections=strict'],env:{...process.env,DATABASE_URL:url.toString(),PORT:'0',JWT_SECRET:secret,NODE_ENV:'test',APP_STAGE:'test',MAINTENANCE_MODE:'off',ALLOWED_ORIGIN:'',STRIPE_SECRET_KEY:'',EMAIL_MODE:'console',DOTENV_CONFIG_PATH:path.join(scratch,'absent.env')}});
-  let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
-  const ready=await Promise.race([once(child,'message'),once(child,'exit').then(()=>{throw new Error(output);}),new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('Test server startup timeout')),10000);timer.unref();})]);
-  base='http://127.0.0.1:'+ready[0].port;
+  const build=spawnSync(process.execPath,['server/pg-transform.js'],{cwd:scratch,encoding:'utf8',windowsHide:true});assert.equal(build.status,0,build.stderr);
+  // node --test already isolates this file in its own process. Start the real
+  // generated application here rather than adding another cold process and an
+  // IPC readiness dependency. Keep the same 10-second startup deadline.
+  const fixtureEnv={DATABASE_URL:url.toString(),PORT:'0',JWT_SECRET:secret,NODE_ENV:'test',APP_STAGE:'test',MAINTENANCE_MODE:'off',ALLOWED_ORIGIN:'',STRIPE_SECRET_KEY:'',EMAIL_MODE:'console',DOTENV_CONFIG_PATH:path.join(scratch,'absent.env')};
+  previousEnv=Object.fromEntries(Object.keys(fixtureEnv).map(key=>[key,process.env[key]]));
+  previousSignals=new Map(['SIGTERM','SIGINT'].map(signal=>[signal,process.listeners(signal)]));
+  Object.assign(process.env,fixtureEnv);
+  const originalListen=express.application.listen;
+  let timer,resolveListening,rejectListening;
+  const listening=new Promise((resolve,reject)=>{resolveListening=resolve;rejectListening=reject;});
+  // Handle an early socket error even while the module import is still pending.
+  listening.catch(()=>{});
+  express.application.listen=function(...args){
+    httpServer=originalListen.apply(this,args);
+    httpServer.once('error',rejectListening);
+    httpServer.once('listening',()=>resolveListening(httpServer.address().port));
+    return httpServer;
+  };
+  try {
+    const startup=(async()=>{
+      appDb=(await import(pathToFileURL(path.join(scratch,'server/db.js')).href)).default;
+      await import(pathToFileURL(path.join(scratch,'server/index.pg.generated.js')).href);
+      return listening;
+    })();
+    const port=await Promise.race([startup,new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error('Test server startup timeout')),10000);
+    })]);
+    assert.ok(Number.isInteger(port)&&port>0,'Real HTTP server must be listening');
+    base='http://127.0.0.1:'+port;
+  } finally {
+    clearTimeout(timer);
+    express.application.listen=originalListen;
+  }
 });
 after(async()=>{
-  if(child&&child.exitCode===null){const stopped=once(child,'exit');child.kill();await stopped;}
+  if(httpServer) {
+    const closed=new Promise((resolve,reject)=>httpServer.close(error=>error?reject(error):resolve()));
+    httpServer.closeAllConnections();await closed;
+  }
+  if(appDb)await appDb.close();
+  if(previousSignals)for(const [signal,original] of previousSignals)for(const listener of process.listeners(signal))if(!original.includes(listener))process.removeListener(signal,listener);
+  if(previousEnv)for(const [key,value] of Object.entries(previousEnv)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
   if(db){await db.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);await db.end();}
   if(scratch)fs.rmSync(scratch,{recursive:true,force:true});
 });
